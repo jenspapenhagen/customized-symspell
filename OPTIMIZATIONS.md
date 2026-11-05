@@ -319,3 +319,20 @@ Nicht übernommen (bereits äquivalent oder ungeeignet):
 - `serde`-Serialisierung: nur Binary-Snapshot, kein Hot-Path-Gewinn.
 - WASM-Bindings: für Java irrelevant.
 - `parse_words` via `split_whitespace`: unsere Regex-Variante deckt mehr Trennzeichen ab.
+
+## Bewertung seanlee2020/customized-symspell – Commit 36f6d11 („use ngram and double metaphone for reranking“)
+
+Idee: Im Compound-Lookup werden pro Token nicht mehr nur TOP-, sondern ALL-Kandidaten geholt und anschließend per Kontext neu gerankt:
+- Double-Metaphone-Code des Tokens vs. Kandidaten (`sameMetaphoneCode`),
+- Bigramm-Frequenzen mit Vor-/Folgetoken,
+- Trigramm-Frequenzen (drei Fenster),
+- Gewicht `(bigram1+bigram2)/unigram + 1000 * (trigram1+trigram2+trigram3)/unigram`,
+- Sortierung über `SuggestionItem.compareTo` mit `score / 100^distance`.
+
+Bewertung: **nicht übernommen**.
+- `compareTo` verletzt den Comparator-Vertrag: bei zwei Kandidaten mit `distance == 0` liefert es in beide Richtungen `-1` (nicht antisymmetrisch); außerdem ist `score` bei Einzelwort-Lookups 0.
+- Benötigt ein neues Trigramm-Wörterbuch (Commit fügt ~950k Zeilen Testdaten hinzu) und `commons-codec`.
+- Gewichte (1000) sind hartkodiert; `Verbosity.ALL` im Compound-Lookup kostet deutlich Laufzeit.
+- Änderung würde bestehende Ranking-Tests und die TOP/CLOSEST-Semantik brechen.
+
+Übernehmbare Teilidee (falls später gewünscht): Double-Metaphone nur als Tie-Breaker bei gleicher Distanz und Frequenz, optional und standardmäßig aus – nicht global in `compareTo`.
