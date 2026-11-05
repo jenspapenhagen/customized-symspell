@@ -522,3 +522,38 @@ Ausdruck über und die Funktion gab sofort `-1` zurück — **jede** Compound-Di
 ### Tests
 `ViterbiSegmentationTest` (5 Tests): Setting-Roundtrip, vollständige Segmentierung, Erhalt
 mittlerer Teile, Legacy-Verhalten bei deaktiviertem Flag, Fallback bei unbekanntem Wort.
+
+## Deutsches 500k-Wörterbuch aus FrequencyWords (2026-11-05)
+
+Quelle: [hermitdave/FrequencyWords](https://github.com/hermitdave/FrequencyWords),
+`content/2018/de/de_full.txt` (1.157.685 Zeilen, OpenSubtitles 2018).
+
+### Bereinigung (`scripts/build-frequency-dictionary.py`)
+- Kleinbuchstaben, nur `a-zäöüß` (optional Bindestrich über `--allow-hyphen`).
+- Ziffern, Apostrophe, Satzzeichen und fremde Schriftsysteme fallen raus (275.143 Tokens).
+- Groß-/Kleinschreibungs-Varianten werden summiert, dann absteigend sortiert und auf
+  `--max-words` (Default 500.000) gekürzt.
+- Ausgabe `term<TAB>frequency`; `--min-count`, `--min-length` und `--transform none|log10|sqrt`
+  sind verfügbar.
+- `--transform` bleibt bewusst auf `none`: die Rangfolge ist unter einer monotonen Transformation
+  identisch, aber `SuggestionItem.count` wird additiv verwendet (`count + 2` bei Bigramm-Splits,
+  `s1.count * s2.count / nMax`) und die Komposita-Kosten im Viterbi-Pfad sind Verhältnisse
+  `ln(maxFreq / freq)`. Logarithmieren würde beide Pfade verändern, ohne das Ranking zu verbessern.
+
+### Ergebnis
+- 500.000 Einträge, 6,6 MB, Frequenzbereich 5.890.279 (`ich`) bis 1.
+- Die gesuchten Komposita sind jetzt enthalten: `hausboot` (174), `krankenhaus` (16.645),
+  `oberfläche` (1.719), `haustür` (853), `sonnenblumen` (65), `fußball` (1.779).
+- Folge: `hausboot` und `krankenhausapotheke` sind exakte Treffer (Distanz 0), es kommt gar nicht
+  erst zu einem Split. Damit greift `noSubMatches` seltener — es bleibt die Absicherung für Wörter,
+  die auch im 500k-Bestand fehlen.
+
+### Kosten (gemessen, `InMemoryDataHolder`, maxEditDistance 2, topK 25)
+| prefixLength | Build | Heap | Lookup ALL (500k) |
+|---|---|---|---|
+| 7 | 3,9–4,0 s | ~304 MB | ~58 µs |
+| 6 | 3,2–3,4 s | ~181 MB | ~137 µs |
+| 5 | 3,7 s | ~150 MB | ~498 µs |
+
+`prefixLength=7` bleibt gesetzt: halber Speicher spart 0,7 s Build, kostet aber 2,4× Lookup-Zeit.
+Service-Start inklusive Spring Boot: 6,4 s. Demo-Antwort warm ~0,3 ms (`Verbosity.ALL`, topK 25).

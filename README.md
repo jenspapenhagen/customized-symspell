@@ -115,11 +115,22 @@ Word deletes are generated with taking edit distance which is minimum of max edi
 
 `symspell-service` liefert eine kleine lokale Suchoberfläche mit Vorschlägen und
 Did-you-mean-Korrektur auf Basis des mitgelieferten deutschen Frequenzwörterbuchs
-(`de-100k.txt`, 100.000 Begriffe).
+(`de-500k.txt`, 500.000 Begriffe aus [hermitdave/FrequencyWords](https://github.com/hermitdave/FrequencyWords),
+OpenSubtitles 2018, bereinigt und auf Kleinbuchstaben gefaltet).
 
 ```bash
 mvn -pl symspell-service -am package -DskipTests
 java -jar symspell-service/target/symspell-service-6.7-SNAPSHOT.jar
+```
+
+Das Wörterbuch wird beim Start aufgebaut (rund 4 s, ~300 MB Heap bei `prefixLength=7`).
+Neu erzeugen lässt es sich mit:
+
+```bash
+curl -sSL -o /tmp/de_full.txt \
+  https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/de/de_full.txt
+python3 scripts/build-frequency-dictionary.py /tmp/de_full.txt \
+  symspell-service/src/main/resources/de-500k.txt --max-words 500000
 ```
 
 Danach <http://localhost:8080> öffnen. Die JSON-Schnittstelle liegt unter

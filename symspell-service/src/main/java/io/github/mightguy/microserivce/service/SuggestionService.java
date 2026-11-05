@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 /**
  * Loads a frequency dictionary once and answers spelling suggestions from it.
  *
- * <p>The dictionary is read from the classpath ({@code de-100k.txt}) and kept in an
+ * <p>The dictionary is read from the classpath ({@code de-500k.txt}) and kept in an
  * {@link InMemoryDataHolder}. Lookups are read-only after startup and therefore thread safe.
  *
  * @author MighTguY
@@ -32,7 +32,7 @@ import org.springframework.stereotype.Service;
 @Service
 public final class SuggestionService {
 
-    private static final String DICTIONARY_RESOURCE = "de-100k.txt";
+    private static final String DICTIONARY_RESOURCE = "de-500k.txt";
     private static final int MAGIC_2 = 2;
     private static final int MAGIC_7 = 7;
     private static final int MAGIC_25 = 25;
