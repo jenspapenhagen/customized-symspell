@@ -5,19 +5,30 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import org.springframework.http.HttpStatus;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
 /**
  * Generic JSON response envelope returned by the spellcheck service.
  *
  * @author MighTguY
  * @since 6.7
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Response {
 
+    /**
+     * The HTTP status of the response.
+     */
     protected HttpStatus status;
+
+    /**
+     * The human readable message.
+     */
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     protected String message;
+
+    /**
+     * The optional response payload.
+     */
     protected Object resp;
 
     /**
@@ -38,10 +49,11 @@ public class Response {
     }
 
     /**
+     * Creates a response with a payload.
      *
-     * @param status
-     * @param message
-     * @param resp
+     * @param theStatus the HTTP status
+     * @param theMessage the human readable message
+     * @param theResp the response payload
      */
     public Response(final HttpStatus theStatus, final String theMessage, final Object theResp) {
         this.status = theStatus;

@@ -1096,10 +1096,10 @@ public class SymSpellCheck extends SpellChecker {
      * <p>
      * Find suggested spellings for a multi-word input string (supports word splitting/merging).
      *
-     * @param phrase                    The string being spell checked.
-     * @param maxSegmentationWordLength The maximum word length
-     * @param maxEditDistance           The maximum edit distance
-     * @return The word segmented string
+     * @param thePhrase the string being spell checked
+     * @param maxSegmentationWordLength the maximum word length
+     * @param maxEditDistance the maximum edit distance
+     * @return the word segmented string
      */
     public Composition wordBreakSegmentation(final String thePhrase, final int maxSegmentationWordLength,
             final double maxEditDistance) throws SpellCheckException {

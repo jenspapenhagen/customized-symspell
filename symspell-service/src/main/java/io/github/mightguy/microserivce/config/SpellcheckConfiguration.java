@@ -3,15 +3,22 @@ package io.github.mightguy.microserivce.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-@Configuration
-@ConfigurationProperties(prefix = "spellcheck")
 /**
  * External configuration for the distance weights used by the spellcheck service.
  *
  * @author MighTguY
  * @since 6.7
  */
+@Configuration
+@ConfigurationProperties(prefix = "spellcheck")
 public class SpellcheckConfiguration {
+
+    /**
+     * Creates the configuration. Spring Boot binds the properties from the environment.
+     */
+    public SpellcheckConfiguration() {
+        // configured by Spring
+    }
 
     private double deletionWeight;
     private double insertionWeight;

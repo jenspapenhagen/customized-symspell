@@ -53,11 +53,11 @@ public class WeightedDamerauLevenshteinDistance implements StringDistance {
     /**
      * Constructor for Weighted Damerau Levenshtein.
      *
-     * @param deletionWeight weight of a deleted character
-     * @param insertionWeight weight of an inserted character
-     * @param replaceWeight weight of a replaced character
-     * @param transpositionWeight weight of a transposition of two adjacent characters
-     * @param charDistance optional per character replacement cost, may be {@code null}
+     * @param theDeletionWeight weight of a deleted character
+     * @param theInsertionWeight weight of an inserted character
+     * @param theReplaceWeight weight of a replaced character
+     * @param theTranspositionWeight weight of a transposition of two adjacent characters
+     * @param theCharDistance optional per character replacement cost, may be {@code null}
      */
     public WeightedDamerauLevenshteinDistance(final double theDeletionWeight, final double theInsertionWeight,
             final double theReplaceWeight, final double theTranspositionWeight, final CharDistance theCharDistance) {

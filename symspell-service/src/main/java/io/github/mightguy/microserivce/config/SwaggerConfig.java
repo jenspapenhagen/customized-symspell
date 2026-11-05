@@ -6,21 +6,28 @@ import io.swagger.v3.oas.models.info.Info;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-@Configuration
 /**
  * Exposes the OpenAPI metadata for the spellcheck service.
  *
  * @author MighTguY
  * @since 6.7
  */
+@Configuration
 public class SwaggerConfig {
 
-    @Bean
+    /**
+     * Creates the OpenAPI configuration.
+     */
+    public SwaggerConfig() {
+        // configured by Spring
+    }
+
     /**
      * Builds the OpenAPI description of the service.
      *
      * @return the OpenAPI metadata
      */
+    @Bean
     public OpenAPI spellcheckOpenApi() {
         return new OpenAPI()
                 .info(new Info()

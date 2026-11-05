@@ -20,6 +20,12 @@ public class Utf16HashFunction implements HashFunction {
     private static final long FINAL_MIX_MULTIPLIER = 0xFF51AFD7ED558CCDL;
     private static final long FINAL_MIX_MULTIPLIER_SECOND = 0xC4CEB9FE1A85EC53L;
 
+    /**
+     * Creates a hash function instance. The class is stateless, a single instance can be shared.
+     */
+    public Utf16HashFunction() {
+        // stateless
+    }
 
     /**
      * Hashes the given bytes by decoding them as UTF-8 and hashing the resulting string.

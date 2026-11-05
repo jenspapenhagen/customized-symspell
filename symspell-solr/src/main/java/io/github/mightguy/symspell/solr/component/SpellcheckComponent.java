@@ -47,6 +47,13 @@ public class SpellcheckComponent extends SearchComponent implements SolrCoreAwar
     private static final int DEFAULT_PREFIX_LENGTH = 7;
     private static final int DEFAULT_COUNT_THRESHOLD = 10;
 
+    /**
+     * Creates the component. Solr calls {@link #init(NamedList)} during startup.
+     */
+    public SpellcheckComponent() {
+        // configured in init()
+    }
+
     private NamedList initParams;
     private SpellChecker spellChecker;
 
@@ -61,6 +68,9 @@ public class SpellcheckComponent extends SearchComponent implements SolrCoreAwar
     private CustomSpellCheckListner customSpellCheckListner;
     private int threshold = 0;
 
+    /**
+     * Name under which the component is registered in solrconfig.xml.
+     */
     public static final String COMPONENT_NAME = "custom_spellcheck";
 
     @Override

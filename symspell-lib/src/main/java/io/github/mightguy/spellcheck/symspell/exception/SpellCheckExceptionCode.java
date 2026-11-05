@@ -9,9 +9,21 @@ package io.github.mightguy.spellcheck.symspell.exception;
  */
 public enum SpellCheckExceptionCode {
 
+    /**
+     * A lookup of suggestions failed.
+     */
     LOOKUP_ERROR("Exception occured while looking up the term"),
+    /**
+     * Indexing a dictionary entry failed.
+     */
     INDEX_ERROR("Exception occured while indexing  the term"),
+    /**
+     * Generating the deletes of a term failed.
+     */
     DELETE_ERROR("Exception occured while deleting up the term"),
+    /**
+     * Dumping or loading the dictionary failed.
+     */
     DUMP_ERROR("Exception occured while dumping up the term");
 
     private String message;

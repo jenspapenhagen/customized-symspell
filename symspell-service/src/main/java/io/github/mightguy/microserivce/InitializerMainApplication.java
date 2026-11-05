@@ -3,14 +3,21 @@ package io.github.mightguy.microserivce;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication
 /**
  * Spring Boot entry point for the spellcheck microservice.
  *
  * @author MighTguY
  * @since 6.7
  */
+@SpringBootApplication
 public class InitializerMainApplication {
+
+    /**
+     * Creates the application entry point. Spring Boot instantiates and configures the context.
+     */
+    public InitializerMainApplication() {
+        // configured by Spring
+    }
 
     /**
      * Starts the Spring Boot application.

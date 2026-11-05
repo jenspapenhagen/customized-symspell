@@ -13,13 +13,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-@Service
 /**
  * Service layer that resolves the configured distance metric and answers edit distance requests.
  *
  * @author MighTguY
  * @since 6.7
  */
+@Service
 public class SpellcheckService {
 
     StringDistance stringDistance;
@@ -29,15 +29,11 @@ public class SpellcheckService {
 
 
     /**
-     *
-     * @param configuration
-     */
-    @Autowired
-    /**
      * Creates the service and resolves the configured distance metric.
      *
      * @param theConfiguration the external configuration, must not be {@code null}
      */
+    @Autowired
     public SpellcheckService(final SpellcheckConfiguration theConfiguration) {
         this.configuration = theConfiguration;
         stringDistance = new WeightedDamerauLevenshteinDistance(theConfiguration.getDeletionWeight(),
@@ -60,10 +56,11 @@ public class SpellcheckService {
     }
 
     /**
+     * Computes the edit distance with the default budget.
      *
-     * @param source
-     * @param target
-     * @return
+     * @param source the source word
+     * @param target the target word
+     * @return the response containing both words and the distance
      */
     public Response getEditDistance(final String source, final String target) {
         final double distance = stringDistance.getDistance(source, target);
@@ -71,11 +68,12 @@ public class SpellcheckService {
     }
 
     /**
+     * Wraps a computed distance in a response.
      *
-     * @param source
-     * @param target
-     * @param distance
-     * @return
+     * @param source the source word
+     * @param target the target word
+     * @param distance the computed edit distance
+     * @return the response containing both words and the distance
      */
     public Response generateResponse(final String source, final String target, final double distance) {
         final Map<String, Object> responseMap = new HashMap<>();

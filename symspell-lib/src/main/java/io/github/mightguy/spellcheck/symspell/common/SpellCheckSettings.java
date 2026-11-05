@@ -139,6 +139,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns a builder pre-filled with the documented defaults.
+     *
      * @return a builder pre-filled with the documented defaults
      */
     public static SpellCheckSettingsBuilder builder() {
@@ -146,6 +148,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns the configured verbosity.
+     *
      * @return the configured verbosity
      */
     public Verbosity getVerbosity() {
@@ -153,6 +157,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns the maximum number of suggestions returned.
+     *
      * @return the maximum number of suggestions returned
      */
     public int getTopK() {
@@ -160,6 +166,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns the deletion weight of the distance metric.
+     *
      * @return the deletion weight of the distance metric
      */
     public float getDeletionWeight() {
@@ -167,6 +175,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns the insertion weight of the distance metric.
+     *
      * @return the insertion weight of the distance metric
      */
     public float getInsertionWeight() {
@@ -174,6 +184,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns the replace weight of the distance metric.
+     *
      * @return the replace weight of the distance metric
      */
     public float getReplaceWeight() {
@@ -181,6 +193,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns the transposition weight of the distance metric.
+     *
      * @return the transposition weight of the distance metric
      */
     public float getTranspositionWeight() {
@@ -188,6 +202,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns true if terms are lowercased before lookup.
+     *
      * @return true if terms are lowercased before lookup
      */
     public boolean isLowerCaseTerms() {
@@ -195,6 +211,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns the maximum edit distance used for lookups.
+     *
      * @return the maximum edit distance used for lookups
      */
     public double getMaxEditDistance() {
@@ -202,6 +220,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns the length of the indexed word prefixes.
+     *
      * @return the length of the indexed word prefixes
      */
     public int getPrefixLength() {
@@ -209,6 +229,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns the minimum frequency of a dictionary word.
+     *
      * @return the minimum frequency of a dictionary word
      */
     public long getCountThreshold() {
@@ -216,6 +238,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns the maximum length of an indexed key.
+     *
      * @return the maximum length of an indexed key
      */
     public int getMaxLength() {
@@ -223,13 +247,17 @@ public class SpellCheckSettings {
     }
 
     /**
-     * @param maxLength the maximum length of an indexed key
+     * Sets the maximum length of an indexed key.
+     *
+     * @param maxLengthValue the maximum length of an indexed key
      */
     public void setMaxLength(final int maxLengthValue) {
         this.maxLength = maxLengthValue;
     }
 
     /**
+     * Returns the minimum count of a bigram.
+     *
      * @return the minimum count of a bigram
      */
     public double getBigramCountMin() {
@@ -237,13 +265,17 @@ public class SpellCheckSettings {
     }
 
     /**
-     * @param bigramCountMin the minimum count of a bigram
+     * Sets the minimum count of a bigram.
+     *
+     * @param bigramCountMinValue the minimum count of a bigram
      */
     public void setBigramCountMin(final double bigramCountMinValue) {
         this.bigramCountMin = bigramCountMinValue;
     }
 
     /**
+     * Returns true if unknown words are dropped from the result set.
+     *
      * @return true if unknown words are dropped from the result set
      */
     public boolean isIgnoreUnknown() {
@@ -251,6 +283,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns the factor used to derive the edit distance from the word length.
+     *
      * @return the factor used to derive the edit distance from the word length
      */
     public double getEditFactor() {
@@ -258,6 +292,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns true if multi word keys are split on whitespace.
+     *
      * @return true if multi word keys are split on whitespace
      */
     public boolean isDoKeySplit() {
@@ -265,6 +301,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns the regular expression used to split multi word keys.
+     *
      * @return the regular expression used to split multi word keys
      */
     public String getKeySplitRegex() {
@@ -281,6 +319,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns true if compound splits require real dictionary parts.
+     *
      * @return true if compound splits require real dictionary parts
      */
     public boolean isNoSubMatches() {
@@ -288,6 +328,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Sets true to reject splits whose parts are not dictionary terms.
+     *
      * @param noSubMatchesValue true to reject splits whose parts are not dictionary terms
      */
     public void setNoSubMatches(final boolean noSubMatchesValue) {
@@ -295,6 +337,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Returns true if compound segmentation uses the Viterbi dynamic program.
+     *
      * @return true if compound segmentation uses the Viterbi dynamic program
      */
     public boolean isViterbiSegmentation() {
@@ -302,6 +346,8 @@ public class SpellCheckSettings {
     }
 
     /**
+     * Sets true to segment joined words with the Viterbi dynamic program.
+     *
      * @param viterbiSegmentationValue true to segment joined words with the Viterbi dynamic program
      */
     public void setViterbiSegmentation(final boolean viterbiSegmentationValue) {
@@ -337,6 +383,13 @@ public class SpellCheckSettings {
      */
     public static final class SpellCheckSettingsBuilder {
 
+        /**
+         * Creates a builder with the documented default values.
+         */
+        public SpellCheckSettingsBuilder() {
+            // defaults are field initialisers
+        }
+
         private Verbosity verbosity = Verbosity.ALL;
         private int topK = DEFAULT_TOP_K;
         private float deletionWeight = 1.0f;
@@ -360,7 +413,9 @@ public class SpellCheckSettings {
         private boolean viterbiSegmentation = false;
 
         /**
-         * @param verbosity the verbosity used for lookups
+         * Configures the verbosity used for lookups.
+         *
+         * @param verbosityValue the verbosity used for lookups
          * @return this builder
          */
         public SpellCheckSettingsBuilder verbosity(final Verbosity verbosityValue) {
@@ -369,7 +424,9 @@ public class SpellCheckSettings {
         }
 
         /**
-         * @param topK the maximum number of suggestions
+         * Configures the maximum number of suggestions.
+         *
+         * @param topKValue the maximum number of suggestions
          * @return this builder
          */
         public SpellCheckSettingsBuilder topK(final int topKValue) {
@@ -378,7 +435,9 @@ public class SpellCheckSettings {
         }
 
         /**
-         * @param deletionWeight the deletion weight
+         * Configures the deletion weight.
+         *
+         * @param deletionWeightValue the deletion weight
          * @return this builder
          */
         public SpellCheckSettingsBuilder deletionWeight(final float deletionWeightValue) {
@@ -387,7 +446,9 @@ public class SpellCheckSettings {
         }
 
         /**
-         * @param insertionWeight the insertion weight
+         * Configures the insertion weight.
+         *
+         * @param insertionWeightValue the insertion weight
          * @return this builder
          */
         public SpellCheckSettingsBuilder insertionWeight(final float insertionWeightValue) {
@@ -396,7 +457,9 @@ public class SpellCheckSettings {
         }
 
         /**
-         * @param replaceWeight the replace weight
+         * Configures the replace weight.
+         *
+         * @param replaceWeightValue the replace weight
          * @return this builder
          */
         public SpellCheckSettingsBuilder replaceWeight(final float replaceWeightValue) {
@@ -405,7 +468,9 @@ public class SpellCheckSettings {
         }
 
         /**
-         * @param transpositionWeight the transposition weight
+         * Configures the transposition weight.
+         *
+         * @param transpositionWeightValue the transposition weight
          * @return this builder
          */
         public SpellCheckSettingsBuilder transpositionWeight(final float transpositionWeightValue) {
@@ -414,7 +479,9 @@ public class SpellCheckSettings {
         }
 
         /**
-         * @param lowerCaseTerms true if terms should be lowercased
+         * Configures true if terms should be lowercased.
+         *
+         * @param lowerCaseTermsValue true if terms should be lowercased
          * @return this builder
          */
         public SpellCheckSettingsBuilder lowerCaseTerms(final boolean lowerCaseTermsValue) {
@@ -423,7 +490,9 @@ public class SpellCheckSettings {
         }
 
         /**
-         * @param maxEditDistance the maximum edit distance
+         * Configures the maximum edit distance.
+         *
+         * @param maxEditDistanceValue the maximum edit distance
          * @return this builder
          */
         public SpellCheckSettingsBuilder maxEditDistance(final double maxEditDistanceValue) {
@@ -432,7 +501,9 @@ public class SpellCheckSettings {
         }
 
         /**
-         * @param prefixLength the length of the indexed prefixes
+         * Configures the length of the indexed prefixes.
+         *
+         * @param prefixLengthValue the length of the indexed prefixes
          * @return this builder
          */
         public SpellCheckSettingsBuilder prefixLength(final int prefixLengthValue) {
@@ -441,7 +512,9 @@ public class SpellCheckSettings {
         }
 
         /**
-         * @param countThreshold the minimum frequency of a dictionary word
+         * Configures the minimum frequency of a dictionary word.
+         *
+         * @param countThresholdValue the minimum frequency of a dictionary word
          * @return this builder
          */
         public SpellCheckSettingsBuilder countThreshold(final long countThresholdValue) {
@@ -450,7 +523,9 @@ public class SpellCheckSettings {
         }
 
         /**
-         * @param maxLength the maximum length of an indexed key
+         * Configures the maximum length of an indexed key.
+         *
+         * @param maxLengthValue the maximum length of an indexed key
          * @return this builder
          */
         public SpellCheckSettingsBuilder maxLength(final int maxLengthValue) {
@@ -459,7 +534,9 @@ public class SpellCheckSettings {
         }
 
         /**
-         * @param bigramCountMin the minimum count of a bigram
+         * Configures the minimum count of a bigram.
+         *
+         * @param bigramCountMinValue the minimum count of a bigram
          * @return this builder
          */
         public SpellCheckSettingsBuilder bigramCountMin(final double bigramCountMinValue) {
@@ -468,7 +545,9 @@ public class SpellCheckSettings {
         }
 
         /**
-         * @param ignoreUnknown true if unknown words are dropped
+         * Configures true if unknown words are dropped.
+         *
+         * @param ignoreUnknownValue true if unknown words are dropped
          * @return this builder
          */
         public SpellCheckSettingsBuilder ignoreUnknown(final boolean ignoreUnknownValue) {
@@ -477,7 +556,9 @@ public class SpellCheckSettings {
         }
 
         /**
-         * @param editFactor the factor used to derive the edit distance
+         * Configures the factor used to derive the edit distance.
+         *
+         * @param editFactorValue the factor used to derive the edit distance
          * @return this builder
          */
         public SpellCheckSettingsBuilder editFactor(final double editFactorValue) {
@@ -486,7 +567,9 @@ public class SpellCheckSettings {
         }
 
         /**
-         * @param doKeySplit true if multi word keys are split
+         * Configures true if multi word keys are split.
+         *
+         * @param doKeySplitValue true if multi word keys are split
          * @return this builder
          */
         public SpellCheckSettingsBuilder doKeySplit(final boolean doKeySplitValue) {
@@ -495,7 +578,9 @@ public class SpellCheckSettings {
         }
 
         /**
-         * @param keySplitRegex the regular expression used to split multi word keys
+         * Configures the regular expression used to split multi word keys.
+         *
+         * @param keySplitRegexValue the regular expression used to split multi word keys
          * @return this builder
          */
         public SpellCheckSettingsBuilder keySplitRegex(final String keySplitRegexValue) {
@@ -515,6 +600,8 @@ public class SpellCheckSettings {
         }
 
         /**
+         * Configures true to reject splits whose parts are not dictionary terms.
+         *
          * @param noSubMatchesValue true to reject splits whose parts are not dictionary terms
          * @return this builder
          */
@@ -535,6 +622,8 @@ public class SpellCheckSettings {
         }
 
         /**
+         * Returns the immutable-by-convention settings.
+         *
          * @return the immutable-by-convention settings
          */
         public SpellCheckSettings build() {

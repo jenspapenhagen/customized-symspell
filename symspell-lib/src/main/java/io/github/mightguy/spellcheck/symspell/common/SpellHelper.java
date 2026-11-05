@@ -61,8 +61,14 @@ public final class SpellHelper {
     }
 
     /**
-     * Inexpensive and language independent: only deletes, no transposes + replaces + inserts replaces.
-     * and inserts are expensive and language dependent
+     * Generates the deletes of a word for the symmetric delete index. Only deletions are produced;
+     * transpositions, replacements and insertions are expensive and language dependent.
+     *
+     * @param word the word to derive deletes from
+     * @param theEditDistance the maximum number of deletions
+     * @param deletedWords the set that receives the deletes
+     * @param maxEd an optional hard limit for the edit distance, may be {@code null}
+     * @return the same set instance that was passed in, containing all deletes
      */
     public static Set<String> edits(final String word, final double theEditDistance, final Set<String> deletedWords,
             final Double maxEd) {
@@ -91,7 +97,14 @@ public final class SpellHelper {
     }
 
     /**
-     * Early exit method.
+     * Adds a placeholder suggestion when the lookup produced no results and unknown words are not
+     * ignored.
+     *
+     * @param suggestionItems the suggestion list to fill
+     * @param phrase the original input
+     * @param maxEditDistance the maximum edit distance
+     * @param ignoreUnknown whether unknown words are ignored
+     * @return the same list instance that was passed in
      */
     public static List<SuggestionItem> earlyExit(final List<SuggestionItem> suggestionItems,
             final String phrase, final double maxEditDistance, final boolean ignoreUnknown) {
@@ -149,10 +162,12 @@ public final class SpellHelper {
     }
 
     /**
-     * Check if heads  are same.
-     * @param suggestions
-     * @param suggestions1
-     * @return boolean
+     * Checks whether the best suggestion of a partial lookup equals the best suggestion of the
+     * complete word, in which case the split can be skipped.
+     *
+     * @param suggestions the suggestions for the complete word, may be {@code null}
+     * @param suggestions1 the suggestions for the first part
+     * @return {@code true} if the heads are the same
      */
     public static boolean continueConditionIfHeadIsSame(final List<SuggestionItem> suggestions,
             final List<SuggestionItem> suggestions1) {

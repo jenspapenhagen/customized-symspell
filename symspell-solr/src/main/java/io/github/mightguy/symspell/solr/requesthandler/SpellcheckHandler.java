@@ -28,6 +28,13 @@ import org.apache.solr.response.SolrQueryResponse;
  */
 public class SpellcheckHandler extends SearchHandler {
 
+    /**
+     * Creates the handler. The component and checker are resolved lazily on the first request.
+     */
+    public SpellcheckHandler() {
+        // resolved lazily in initSpellCheck()
+    }
+
     SpellcheckComponent spellCheckComponent;
     SpellChecker spellChecker;
 

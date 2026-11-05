@@ -18,10 +18,19 @@ import java.util.List;
  */
 public abstract class SpellChecker {
 
+    /**
+     * The dictionary holder that stores the terms and their delete index.
+     */
     protected DataHolder dataHolder;
 
+    /**
+     * The metric used to verify a candidate and to report the final edit distance.
+     */
     protected StringDistance stringDistance;
 
+    /**
+     * The settings that control verbosity, weights and lookup limits.
+     */
     protected SpellCheckSettings spellCheckSettings;
 
     /**

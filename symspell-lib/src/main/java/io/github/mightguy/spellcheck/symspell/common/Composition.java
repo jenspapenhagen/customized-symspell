@@ -3,7 +3,7 @@ package io.github.mightguy.spellcheck.symspell.common;
 
 /**
  * Result of the word segmentation: the segmented string, the corrected string and the scores.
-  *
+ *
  * @author MighTguY
  * @since 6.7
  */
@@ -18,17 +18,20 @@ public class Composition {
     private double logProbSum;
 
     /**
-     * Empty composition, used as a placeholder while filling the dynamic programming table.
+     * Creates an empty composition, used as a placeholder while filling the dynamic programming
+     * table.
      */
     public Composition() {
         // nothing to initialize
     }
 
     /**
-     * @param segmentedString the input split into words
-     * @param correctedString the corrected and joined words
-     * @param distanceSum     sum of the edit distances of all words
-     * @param logProbSum      sum of the log probabilities of all words
+     * Creates a composition with the given segmentation result.
+     *
+     * @param theSegmentedString the input split into words
+     * @param theCorrectedString the corrected and joined words
+     * @param theDistanceSum sum of the edit distances of all words
+     * @param theLogProbSum sum of the log probabilities of all words
      */
     public Composition(final String theSegmentedString, final String theCorrectedString, final int theDistanceSum,
             final double theLogProbSum) {
@@ -39,56 +42,72 @@ public class Composition {
     }
 
     /**
-     * @return the input split into words
+     * Returns the input split into words.
+     *
+     * @return the segmented string
      */
     public String getSegmentedString() {
         return segmentedString;
     }
 
     /**
-     * @param segmentedString the input split into words
+     * Sets the input split into words.
+     *
+     * @param theSegmentedString the segmented string
      */
     public void setSegmentedString(final String theSegmentedString) {
         this.segmentedString = theSegmentedString;
     }
 
     /**
-     * @return the corrected and joined words
+     * Returns the corrected and joined words.
+     *
+     * @return the corrected string
      */
     public String getCorrectedString() {
         return correctedString;
     }
 
     /**
-     * @param correctedString the corrected and joined words
+     * Sets the corrected and joined words.
+     *
+     * @param theCorrectedString the corrected string
      */
     public void setCorrectedString(final String theCorrectedString) {
         this.correctedString = theCorrectedString;
     }
 
     /**
-     * @return sum of the edit distances of all words
+     * Returns the sum of the edit distances of all words.
+     *
+     * @return the distance sum
      */
     public int getDistanceSum() {
         return distanceSum;
     }
 
     /**
-     * @param distanceSum sum of the edit distances of all words
+     * Sets the sum of the edit distances of all words.
+     *
+     * @param theDistanceSum the distance sum
      */
     public void setDistanceSum(final int theDistanceSum) {
         this.distanceSum = theDistanceSum;
     }
 
     /**
-     * @return sum of the log probabilities of all words
+     * Returns the sum of the log probabilities of all words.
+     *
+     * @return the log probability sum
      */
     public double getLogProbSum() {
         return logProbSum;
     }
 
     /**
-     * @param logProbSum sum of the log probabilities of all words
+     * Sets the sum of the log probabilities of all words.
+     *
+     * @param theLogProbSum the log probability sum
      */
     public void setLogProbSum(final double theLogProbSum) {
         this.logProbSum = theLogProbSum;

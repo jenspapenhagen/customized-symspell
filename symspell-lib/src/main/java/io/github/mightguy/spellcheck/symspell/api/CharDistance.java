@@ -10,10 +10,12 @@ package io.github.mightguy.spellcheck.symspell.api;
 public interface CharDistance {
 
     /**
-     * returns a value between 0 and 1 (both inclusive). 0 for no distance and 1 for maximum
-     * distance.
+     * Returns the replacement cost between two characters as a value between 0 and 1 (both
+     * inclusive). 0 means no distance and 1 means maximum distance.
      *
-     * @return distance value
+     * @param a the first character
+     * @param b the second character
+     * @return the replacement cost between {@code a} and {@code b}
      */
     double distance(char a, char b);
 

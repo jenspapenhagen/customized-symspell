@@ -5,20 +5,27 @@ import org.apache.solr.core.SolrResourceLoader;
 import org.apache.solr.response.BasicResultContext;
 import org.apache.solr.response.SolrQueryResponse;
 
+/**
+ * Helpers for reading component configuration and query results.
+ *
+ * @author MighTguY
+ * @since 6.7
+ */
 public final class SearchRequestUtil {
 
     private SearchRequestUtil() {
     }
 
     /**
-     * Get Class  from class loader.
-     * @param className
-     * @param loader
-     * @param abstractClass
-     * @param subPackages
-     * @param args
-     * @param <T>
-     * @return
+     * Instantiates a class through the Solr resource loader.
+     *
+     * @param className the fully qualified class name
+     * @param loader the resource loader of the core
+     * @param abstractClass the expected super type
+     * @param subPackages additional packages to search
+     * @param args constructor arguments
+     * @param <T> the expected type
+     * @return the created instance, never {@code null}
      */
     public static <T> T getClassFromLoader(final String className, final SolrResourceLoader loader,
             final Class abstractClass, final String[] subPackages, final Object[] args) {
@@ -30,12 +37,13 @@ public final class SearchRequestUtil {
     }
 
     /**
-     * Get value of  Type T from named list.
-     * @param namedList
-     * @param key
-     * @param def
-     * @param <T>
-     * @return
+     * Reads a typed value from a named list.
+     *
+     * @param namedList the configuration list
+     * @param key the parameter name
+     * @param def the value to return when the key is absent
+     * @param <T> the expected type
+     * @return the configured value or {@code def}
      */
     public static <T> T getFromNamedList(final NamedList namedList, final String key, final T def) {
         T val = (T) namedList.get(key);
@@ -46,10 +54,11 @@ public final class SearchRequestUtil {
     }
 
     /**
-     * Check if the result greater than the spellcheck threshold.
-     * @param rsp
-     * @param spellCheckThreshold
-     * @return
+     * Checks whether the result has at least the configured number of matches.
+     *
+     * @param rsp the query response
+     * @param spellCheckThreshold the minimum number of matches
+     * @return {@code true} if the result reaches the threshold
      */
     public static boolean resultGreaterThanThreshold(final SolrQueryResponse rsp,
             final long spellCheckThreshold) {
@@ -57,10 +66,11 @@ public final class SearchRequestUtil {
     }
 
     /**
-     * Check if the result lesser than the spellcheck threshold.
-     * @param rsp
-     * @param spellCheckThreshold
-     * @return
+     * Checks whether the result has fewer matches than the configured threshold.
+     *
+     * @param rsp the query response
+     * @param spellCheckThreshold the minimum number of matches
+     * @return {@code true} if the result is below the threshold
      */
     public static boolean resultLessThanThreshold(final SolrQueryResponse rsp, final long spellCheckThreshold) {
         if (null == rsp.getResponse()) {

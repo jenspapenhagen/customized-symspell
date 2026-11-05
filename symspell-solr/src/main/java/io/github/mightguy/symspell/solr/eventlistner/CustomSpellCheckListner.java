@@ -42,10 +42,11 @@ public class CustomSpellCheckListner implements SolrEventListener {
     private final List<String> fieldArr;
 
     /**
-     * Constructor for listner.
-     * @param core
-     * @param checker
-     * @param fieldArr
+     * Creates a listener that reloads the spell index on searcher changes.
+     *
+     * @param theCore the Solr core this listener belongs to
+     * @param theChecker the spell checker to reload
+     * @param theFieldArr the fields to index
      */
     public CustomSpellCheckListner(final SolrCore theCore, final SpellChecker theChecker, final String[] theFieldArr) {
         this.core = theCore;
@@ -76,8 +77,9 @@ public class CustomSpellCheckListner implements SolrEventListener {
     }
 
     /**
-     * Init method.
-     * @param args
+     * Initializes the listener. The spell index is built on the first searcher event instead.
+     *
+     * @param args the component configuration, unused
      */
     @Override
     public void init(final NamedList args) {
@@ -85,11 +87,12 @@ public class CustomSpellCheckListner implements SolrEventListener {
     }
 
     /**
-     * Relod method of spellcheck listner.
-     * @param newSearcher
-     * @param checker
-     * @throws IOException
-     * @throws SpellCheckException
+     * Reloads the spell index from the given searcher.
+     *
+     * @param newSearcher the searcher that triggered the reload
+     * @param theChecker the spell checker to fill
+     * @throws IOException if a term vector cannot be read
+     * @throws SpellCheckException if indexing a term fails
      */
     public void reload(final SolrIndexSearcher newSearcher, final SpellChecker theChecker)
             throws IOException, SpellCheckException {

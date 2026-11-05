@@ -15,26 +15,34 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController
-@Tag(name = "Edit Distance")
-@RequestMapping("/distance")
 /**
  * REST controller exposing the edit distance endpoint.
  *
  * @author MighTguY
  * @since 6.7
  */
+@RestController
+@Tag(name = "Edit Distance")
+@RequestMapping("/distance")
 public class SpellcheckController {
+
+    /**
+     * Creates the controller. The service is injected by Spring.
+     */
+    public SpellcheckController() {
+        // service is injected by Spring
+    }
 
     @Autowired
     SpellcheckService service;
 
     /**
+     * Computes the edit distance between two words.
      *
-     * @param sourceWord
-     * @param targetWord
-     * @param maxEd
-     * @return
+     * @param sourceWord the source word
+     * @param targetWord the target word
+     * @param maxEd the maximum distance to compute
+     * @return the response containing both words and the distance
      */
     @Operation(
             summary = "API for calculating the Edit Distance",

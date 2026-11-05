@@ -35,10 +35,11 @@ public class SuggestionItem
     private double count;
 
     /**
-     * COnstructor  for SuggestionItem.
-     * @param term
-     * @param distance
-     * @param count
+     * Creates a suggestion with the given term, distance and frequency.
+     *
+     * @param theTerm the suggested correctly spelled word
+     * @param theDistance the edit distance between the searched word and this suggestion
+     * @param theCount the frequency of the suggestion in the dictionary
      */
     public SuggestionItem(final String theTerm, final double theDistance, final double theCount) {
         this.term = theTerm;
@@ -52,6 +53,8 @@ public class SuggestionItem
     private double score;
 
     /**
+     * Returns the suggested correctly spelled word.
+     *
      * @return the suggested correctly spelled word
      */
     public String getTerm() {
@@ -59,27 +62,35 @@ public class SuggestionItem
     }
 
     /**
-     * @param term the suggested correctly spelled word
+     * Sets the suggested correctly spelled word.
+     *
+     * @param theTerm the suggested correctly spelled word
      */
     public void setTerm(final String theTerm) {
         this.term = theTerm;
     }
 
     /**
-     * @return edit distance between searched for word and suggestion
+     * Returns the edit distance between the searched word and this suggestion.
+     *
+     * @return the edit distance between searched for word and suggestion
      */
     public double getDistance() {
         return distance;
     }
 
     /**
-     * @param distance edit distance between searched for word and suggestion
+     * Sets the edit distance between the searched word and this suggestion.
+     *
+     * @param theDistance edit distance between searched for word and suggestion
      */
     public void setDistance(final double theDistance) {
         this.distance = theDistance;
     }
 
     /**
+     * Returns the frequency of the suggestion in the dictionary.
+     *
      * @return frequency of the suggestion in the dictionary
      */
     public double getCount() {
@@ -87,13 +98,17 @@ public class SuggestionItem
     }
 
     /**
-     * @param count frequency of the suggestion in the dictionary
+     * Sets the frequency of the suggestion in the dictionary.
+     *
+     * @param theCount frequency of the suggestion in the dictionary
      */
     public void setCount(final double theCount) {
         this.count = theCount;
     }
 
     /**
+     * Returns the final similarity score.
+     *
      * @return the final similarity score
      */
     public double getScore() {
@@ -101,7 +116,9 @@ public class SuggestionItem
     }
 
     /**
-     * @param score the final similarity score
+     * Sets the final similarity score.
+     *
+     * @param theScore the final similarity score
      */
     public void setScore(final double theScore) {
         this.score = theScore;

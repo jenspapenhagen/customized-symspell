@@ -29,6 +29,13 @@ import org.slf4j.LoggerFactory;
  */
 public class SpellCheckerConsole {
 
+    /**
+     * Creates a console front end. The dictionary is loaded by {@link #init()}.
+     */
+    public SpellCheckerConsole() {
+        // dictionary is loaded in init()
+    }
+
     private static final Logger log = LoggerFactory.getLogger(SpellCheckerConsole.class);
     private static final int MAX_SUGGESTIONS = 10;
 
@@ -120,10 +127,11 @@ public class SpellCheckerConsole {
     }
 
     /**
-     * Main Method for Console.
-     * @param args
-     * @throws IOException
-     * @throws SpellCheckException
+     * Runs the console front end.
+     *
+     * @param args the command line arguments: dictionary path and optional mode
+     * @throws IOException if a dictionary file cannot be read
+     * @throws SpellCheckException if the dictionary cannot be indexed
      */
     public static void main(final String[] args) throws IOException, SpellCheckException {
         final SpellCheckerConsole spellCheckerConsole = new SpellCheckerConsole();
