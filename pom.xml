@@ -31,7 +31,7 @@
     <checkstyle.exclusions>checkstyle-suppressions.xml</checkstyle.exclusions>
     <failOnStyleViolation>true</failOnStyleViolation>
 
-    <jacoco.version>0.8.14</jacoco.version>
+    <jacoco.version>0.8.16</jacoco.version>
     <jacoco.unittests.destFile>${project.build.directory}/coverage-reports/jacoco.exec
     </jacoco.unittests.destFile>
     <jacoco.unittests.reportPath>${project.build.directory}/coverage-reports/unit-tests
