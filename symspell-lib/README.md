@@ -29,7 +29,7 @@ SpellCheckSettings spellCheckSettings = SpellCheckSettings.builder()
 
 ### DataHolder Initialization
 ```
-DataHolder dataHolder = new InMemoryDataHolder(spellCheckSettings, new Murmur3HashFunction());
+DataHolder dataHolder = new InMemoryDataHolder(spellCheckSettings, new Utf16HashFunction());
 ```
 
 ### StringDistance Initialization

@@ -2,20 +2,39 @@
 package io.github.mightguy.symspell.solr.utils;
 
 /**
- * Use it for all Runtime Exceptions to pass check style.
+ * Unchecked exception used to abort request handling on unrecoverable errors.
+ *
+ * @author MighTguY
+ * @since 6.7
  */
 public class FatalException extends RuntimeException {
 
-  public FatalException(String message) {
-    super(message);
-  }
+    /**
+     * Creates an exception with a message.
+     *
+     * @param message the detail message
+     */
+    public FatalException(final String message) {
+        super(message);
+    }
 
-  public FatalException(String message, Throwable cause) {
-    super(message, cause);
-  }
+    /**
+     * Creates an exception with a message and cause.
+     *
+     * @param message the detail message
+     * @param cause the underlying cause
+     */
+    public FatalException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
 
-  public FatalException(Throwable cause) {
-    super(cause);
-  }
+    /**
+     * Creates an exception with a cause.
+     *
+     * @param cause the underlying cause
+     */
+    public FatalException(final Throwable cause) {
+        super(cause);
+    }
 
 }

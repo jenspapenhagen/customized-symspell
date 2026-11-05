@@ -12,7 +12,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>2.4.0</version>
+    <version>4.1.2</version>
   </parent>
 
   <name>${project.artifactId}</name>
@@ -22,18 +22,16 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <java.version>1.8</java.version>
+    <java.version>25</java.version>
 
     <skip.unit.tests>false</skip.unit.tests>
 
-    <lombok.version>1.18.16</lombok.version>
-
-    <checkstyle.version>8.29</checkstyle.version>
-    <checkstyle.location>google_checks.xml</checkstyle.location>
+    <checkstyle.version>8.45</checkstyle.version>
+    <checkstyle.location>${maven.multiModuleProjectDirectory}/checkstyle-toon.xml</checkstyle.location>
     <checkstyle.exclusions>checkstyle-suppressions.xml</checkstyle.exclusions>
     <failOnStyleViolation>true</failOnStyleViolation>
 
-    <jacoco.version>0.8.6</jacoco.version>
+    <jacoco.version>0.8.14</jacoco.version>
     <jacoco.unittests.destFile>${project.build.directory}/coverage-reports/jacoco.exec
     </jacoco.unittests.destFile>
     <jacoco.unittests.reportPath>${project.build.directory}/coverage-reports/unit-tests
@@ -51,7 +49,7 @@
 
     <maven-assembly-plugin.version>3.3.0</maven-assembly-plugin.version>
     <maven-checkstyle-plugin.version>3.1.1</maven-checkstyle-plugin.version>
-    <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
     <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
     <maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
     <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
@@ -61,15 +59,11 @@
     <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
     <sonar-maven-plugin.version>3.7.0.1746</sonar-maven-plugin.version>
 
-    <apache.commons-collections4.version>4.4</apache.commons-collections4.version>
-    <apache.commons-csv.version>1.8</apache.commons-csv.version>
-    <apache.commons-lang3.version>3.11</apache.commons-lang3.version>
     <hamcrest.version>2.2</hamcrest.version>
     <jmh.version>1.19</jmh.version>
     <junit.version>4.12</junit.version>
-    <murmur.version>1.0.0</murmur.version>
     <solr.version>8.7.0</solr.version>
-    <springfox-swagger.version>3.0.0</springfox-swagger.version>
+    <springdoc.version>3.2.0</springdoc.version>
   </properties>
 
   <dependencyManagement>
@@ -80,27 +74,6 @@
         <version>${project.parent.version}</version>
       </dependency>
 
-      <dependency>
-        <groupId>com.sangupta</groupId>
-        <artifactId>murmur</artifactId>
-        <version>${murmur.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.projectlombok</groupId>
-        <artifactId>lombok</artifactId>
-        <version>${lombok.version}</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-collections4</artifactId>
-        <version>${apache.commons-collections4.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-lang3</artifactId>
-        <version>${apache.commons-lang3.version}</version>
-      </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
@@ -116,11 +89,6 @@
         <artifactId>jmh-generator-annprocess</artifactId>
         <version>${jmh.version}</version>
         <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-csv</artifactId>
-        <version>${apache.commons-csv.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.solr</groupId>
@@ -148,11 +116,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.projectlombok</groupId>
-      <artifactId>lombok</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
@@ -175,15 +138,7 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${maven-compiler-plugin.version}</version>
         <configuration>
-          <source>${java.version}</source>
-          <target>${java.version}</target>
-          <annotationProcessorPaths>
-            <path>
-              <groupId>org.projectlombok</groupId>
-              <artifactId>lombok</artifactId>
-              <version>${lombok.version}</version>
-            </path>
-          </annotationProcessorPaths>
+          <release>${java.version}</release>
         </configuration>
       </plugin>
       <plugin>
@@ -257,7 +212,7 @@
                       <minimum>${coverage.threshold}</minimum>
                     </limit>
                   </limits>
-                </rule>z
+                </rule>
               </rules>
             </configuration>
           </execution>
@@ -323,6 +278,28 @@
           </jacocoReports>
           <repoToken>QdxFNoS4I2m7FTQzjNcluRjyDy8fbUdVN</repoToken>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>4.8.6.7</version>
+        <configuration>
+          <effort>Max</effort>
+          <threshold>Medium</threshold>
+          <excludeFilterFile>${maven.multiModuleProjectDirectory}/spotbugs-exclude.xml</excludeFilterFile>
+          <failOnError>true</failOnError>
+          <xmlOutput>true</xmlOutput>
+          <htmlOutput>true</htmlOutput>
+        </configuration>
+        <executions>
+          <execution>
+            <id>spotbugs-check</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

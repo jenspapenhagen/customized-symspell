@@ -15,31 +15,31 @@ import org.openjdk.jmh.results.ScalarResult;
 
 public class MemoryProfiler implements InternalProfiler {
 
-  @Override
-  public String getDescription() {
-    return "memory heap profiler";
-  }
+    @Override
+    public String getDescription() {
+        return "memory heap profiler";
+    }
 
-  @Override
-  public void beforeIteration(BenchmarkParams benchmarkParams, IterationParams iterationParams) {
+    @Override
+    public void beforeIteration(BenchmarkParams benchmarkParams, IterationParams iterationParams) {
 
-  }
+    }
 
-  @Override
-  public Collection<? extends Result> afterIteration(BenchmarkParams bp, IterationParams ip,
-      IterationResult result) {
-    MemoryUsage heapUsage = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
-    MemoryUsage nonheapUsage = ManagementFactory.getMemoryMXBean().getNonHeapMemoryUsage();
+    @Override
+    public Collection<? extends Result> afterIteration(BenchmarkParams bp, IterationParams ip,
+            IterationResult result) {
+        MemoryUsage heapUsage = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+        MemoryUsage nonheapUsage = ManagementFactory.getMemoryMXBean().getNonHeapMemoryUsage();
 
-    Collection<ScalarResult> results = new ArrayList<>();
-    results.add(
-        new ScalarResult(Defaults.PREFIX + "mem.heap", heapUsage.getUsed() / (1024 * 1024.0), "MB",
-            AggregationPolicy.MAX));
-    results.add(new ScalarResult(
-        Defaults.PREFIX + "mem.nonheap", nonheapUsage.getUsed() / (1024 * 1024.0), "MB",
-        AggregationPolicy.MAX));
+        Collection<ScalarResult> results = new ArrayList<>();
+        results.add(
+                new ScalarResult(Defaults.PREFIX + "mem.heap", heapUsage.getUsed() / (1024 * 1024.0), "MB",
+                        AggregationPolicy.MAX));
+        results.add(new ScalarResult(
+                Defaults.PREFIX + "mem.nonheap", nonheapUsage.getUsed() / (1024 * 1024.0), "MB",
+                AggregationPolicy.MAX));
 
-    return results;
-  }
+        return results;
+    }
 
 }

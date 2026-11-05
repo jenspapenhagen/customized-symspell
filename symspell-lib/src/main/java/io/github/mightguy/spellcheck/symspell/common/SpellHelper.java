@@ -4,99 +4,162 @@ package io.github.mightguy.spellcheck.symspell.common;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.apache.commons.collections4.CollectionUtils;
 
 
+/**
+ * Stateless helpers shared by the spell checker implementations.
+ *
+ * @author MighTguY
+ * @since 6.7
+ */
 public final class SpellHelper {
+    private static final int MAGIC_64 = 64;
 
-  private SpellHelper() {
-  }
 
-  /**
-   * Generate delete string set  for the Key.
-   */
-  public static Set<String> getEditDeletes(String key,
-      double maxEditDistance, int prefixLength, double editFactor) {
-    Set<String> deletedWords = new HashSet<>();
-    if (key.length() <= maxEditDistance) {
-      deletedWords.add("");
-    }
-    if (key.length() > prefixLength) {
-      key = key.substring(0, prefixLength);
-    }
-    deletedWords.add(key);
-    return edits(key, 0, deletedWords, getEdistance(maxEditDistance, key.length(), editFactor));
-  }
+    /**
+     * Scratch buffer for delete generation. Deletes are built in place and turned into a
+     * {@link String} right away, so a single buffer per thread is enough even while recursing.
+     */
+    private static final ThreadLocal<char[]> DELETE_BUFFER = ThreadLocal.withInitial(
+            () -> new char[MAGIC_64]);
 
-  private static Double getEdistance(double maxEditDistance, int length, double factor) {
-    double computedEd = Math.round(factor * length);
-    if (Math.min(maxEditDistance, computedEd) == maxEditDistance) {
-      return maxEditDistance;
-    }
-    return computedEd;
-  }
-
-  /**
-   * Inexpensive and language independent: only deletes, no transposes + replaces + inserts replaces
-   * and inserts are expensive and language dependent
-   */
-  public static Set<String> edits(String word, double editDistance, Set<String> deletedWords,
-      final Double maxEd) {
-    editDistance++;
-    if (word.length() < 1) {
-      return deletedWords;
+    private SpellHelper() {
     }
 
-    for (int i = 0; i < word.length(); i++) {
-      String delete = word.substring(0, i) + word.substring(i + 1, word.length());
-      if (deletedWords.add(delete) && editDistance < maxEd) {
-        edits(delete, editDistance, deletedWords, maxEd);
-      }
+    /**
+     * Generates the deletes of the given key down to the configured edit distance.
+     *
+     * <p>The key is truncated to {@code prefixLength} first, because deletes beyond the prefix can
+     * never match a lookup candidate.
+     *
+     * @param theKey the term to generate deletes for
+     * @param maxEditDistance the maximum number of deletes
+     * @param prefixLength the maximum prefix length used for deletes
+     * @param editFactor factor applied to the term length to derive the edit distance
+     * @return the generated deletes, including the (possibly truncated) key itself
+     */
+    public static Set<String> getEditDeletes(final String theKey,
+            final double maxEditDistance, final int prefixLength, final double editFactor) {
+        String key = theKey;
+        final Set<String> deletedWords = new HashSet<>();
+        if (key.length() <= maxEditDistance) {
+            deletedWords.add("");
+        }
+        if (key.length() > prefixLength) {
+            key = key.substring(0, prefixLength);
+        }
+        deletedWords.add(key);
+        return edits(key, 0, deletedWords, getEdistance(maxEditDistance, key.length(), editFactor));
     }
-    deletedWords.add(word);
-    return deletedWords;
-  }
 
-  /**
-   * Early exit method
-   */
-  public static List<SuggestionItem> earlyExit(List<SuggestionItem> suggestionItems,
-      String phrase, double maxEditDistance, boolean ignoreUnknown) {
-    if (CollectionUtils.isEmpty(suggestionItems) && !ignoreUnknown) {
-      suggestionItems.add(new SuggestionItem(phrase, maxEditDistance + 1, 0));
+    private static Double getEdistance(final double maxEditDistance, final int length, final double factor) {
+        final double computedEd = Math.round(factor * length);
+        if (Math.min(maxEditDistance, computedEd) == maxEditDistance) {
+            return maxEditDistance;
+        }
+        return computedEd;
     }
-    return suggestionItems;
-  }
 
-  public static String[] tokenizeOnWhiteSpace(String word) {
-    return word.split("\\s+");
-  }
+    /**
+     * Inexpensive and language independent: only deletes, no transposes + replaces + inserts replaces.
+     * and inserts are expensive and language dependent
+     */
+    public static Set<String> edits(final String word, final double theEditDistance, final Set<String> deletedWords,
+            final Double maxEd) {
+        double editDistance = theEditDistance;
+        editDistance++;
+        final int wordLength = word.length();
+        if (wordLength < 1) {
+            return deletedWords;
+        }
 
-  public static boolean isLessOrEqualDouble(double d1, double d2, final double threshold) {
-    return Math.abs(d1 - d2) < threshold || d1 < d2;
-  }
+        char[] buffer = DELETE_BUFFER.get();
+        if (buffer.length < wordLength - 1) {
+            buffer = new char[wordLength - 1];
+            DELETE_BUFFER.set(buffer);
+        }
 
-  public static boolean isLessDouble(double d1, double d2, final double threshold) {
-    return !isEqualDouble(d1, d2, threshold) && d1 < d2;
-  }
+        for (int i = 0; i < wordLength; i++) {
+            word.getChars(0, i, buffer, 0);
+            word.getChars(i + 1, wordLength, buffer, i);
+            final String delete = new String(buffer, 0, wordLength - 1);
+            if (deletedWords.add(delete) && editDistance < maxEd) {
+                edits(delete, editDistance, deletedWords, maxEd);
+            }
+        }
+        return deletedWords;
+    }
+
+    /**
+     * Early exit method.
+     */
+    public static List<SuggestionItem> earlyExit(final List<SuggestionItem> suggestionItems,
+            final String phrase, final double maxEditDistance, final boolean ignoreUnknown) {
+        if ((suggestionItems == null || suggestionItems.isEmpty()) && !ignoreUnknown) {
+            suggestionItems.add(new SuggestionItem(phrase, maxEditDistance + 1, 0));
+        }
+        return suggestionItems;
+    }
+
+    /**
+     * Splits the given text on whitespace.
+     *
+     * @param word the text to split
+     * @return the words; empty strings are not produced for well-formed input
+     */
+    public static String[] tokenizeOnWhiteSpace(final String word) {
+        return word.split("\\s+");
+    }
+
+    /**
+     * Compares two doubles, treating values closer than the threshold as equal.
+     *
+     * @param d1 the first value
+     * @param d2 the second value
+     * @param threshold the equality tolerance, must be positive
+     * @return {@code true} if {@code d1} is approximately equal to or less than {@code d2}
+     */
+    public static boolean isLessOrEqualDouble(final double d1, final double d2, final double threshold) {
+        return Math.abs(d1 - d2) < threshold || d1 < d2;
+    }
+
+    /**
+     * Compares two doubles, treating values closer than the threshold as equal.
+     *
+     * @param d1 the first value
+     * @param d2 the second value
+     * @param threshold the equality tolerance, must be positive
+     * @return {@code true} if {@code d1} is strictly less than {@code d2}
+     */
+    public static boolean isLessDouble(final double d1, final double d2, final double threshold) {
+        return !isEqualDouble(d1, d2, threshold) && d1 < d2;
+    }
 
 
-  public static boolean isEqualDouble(double d1, double d2, final double threshold) {
-    return Math.abs(d1 - d2) < threshold;
-  }
+    /**
+     * Checks whether two doubles are equal within the given tolerance.
+     *
+     * @param d1 the first value
+     * @param d2 the second value
+     * @param threshold the equality tolerance, must be positive
+     * @return {@code true} if the values differ by less than the threshold
+     */
+    public static boolean isEqualDouble(final double d1, final double d2, final double threshold) {
+        return Math.abs(d1 - d2) < threshold;
+    }
 
-  /**
-   * Check if heads  are same
-   * @param suggestions
-   * @param suggestions1
-   * @return boolean
-   */
-  public static boolean continueConditionIfHeadIsSame(List<SuggestionItem> suggestions,
-      List<SuggestionItem> suggestions1) {
-    return CollectionUtils.isEmpty(suggestions1)
-        || (CollectionUtils.isNotEmpty(suggestions)
-        && CollectionUtils.isNotEmpty(suggestions1)
-        && suggestions.get(0).equals(suggestions1.get(0)));
-  }
+    /**
+     * Check if heads  are same.
+     * @param suggestions
+     * @param suggestions1
+     * @return boolean
+     */
+    public static boolean continueConditionIfHeadIsSame(final List<SuggestionItem> suggestions,
+            final List<SuggestionItem> suggestions1) {
+        return (suggestions1.isEmpty())
+                || ((suggestions != null && !suggestions.isEmpty())
+                && !suggestions1.isEmpty()
+                && suggestions.get(0).equals(suggestions1.get(0)));
+    }
 
 }

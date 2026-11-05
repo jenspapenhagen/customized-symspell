@@ -20,71 +20,77 @@ import org.apache.solr.handler.component.SearchHandler;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
 
+/**
+ * Solr request handler that exposes single term and compound suggestions.
+ *
+ * @author MighTguY
+ * @since 6.7
+ */
 public class SpellcheckHandler extends SearchHandler {
 
-  SpellcheckComponent spellCheckComponent;
-  SpellChecker spellChecker;
+    SpellcheckComponent spellCheckComponent;
+    SpellChecker spellChecker;
 
 
-  @Override
-  public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) throws Exception {
+    @Override
+    public void handleRequestBody(final SolrQueryRequest req, final SolrQueryResponse rsp) throws Exception {
 
-    if (spellChecker == null) {
-      initSpellCheck();
+        if (spellChecker == null) {
+            initSpellCheck();
+        }
+        final String word = req.getParams().get(Constants.SPELLCHECK_Q, "");
+        rsp.add("lookup_compound", createFeature(spellChecker.lookupCompound(word)));
+        rsp.add("lookup", createFeature(spellChecker.lookup(word)));
+        rsp.add("lookup_wordbreak", createFeatureComp(spellChecker.wordBreakSegmentation(word)));
+        if (req.getParams().getBool(Constants.SPELLCHECK_DATALOAD_UNIGRAM, false)) {
+            rsp.add("UNIGRAM", spellChecker.getDataHolder().getItemFrequency(word));
+        }
+        if (req.getParams().getBool(Constants.SPELLCHECK_DATALOAD_BIGRAM, false)) {
+            rsp.add("BIGRAM", spellChecker.getDataHolder().getItemFrequencyBiGram(word));
+        }
     }
-    String word = req.getParams().get(Constants.SPELLCHECK_Q, "");
-    rsp.add("lookup_compound", createFeature(spellChecker.lookupCompound(word)));
-    rsp.add("lookup", createFeature(spellChecker.lookup(word)));
-    rsp.add("lookup_wordbreak", createFeatureComp(spellChecker.wordBreakSegmentation(word)));
-    if (req.getParams().getBool(Constants.SPELLCHECK_DATALOAD_UNIGRAM, false)) {
-      rsp.add("UNIGRAM", spellChecker.getDataHolder().getItemFrequency(word));
-    }
-    if (req.getParams().getBool(Constants.SPELLCHECK_DATALOAD_BIGRAM, false)) {
-      rsp.add("BIGRAM", spellChecker.getDataHolder().getItemFrequencyBiGram(word));
-    }
-  }
 
-  private Object createFeatureComp(Composition composition) {
-    Map<String, Object> dataInfo = new HashMap<>();
-    dataInfo.put("CorrectedString", composition.getCorrectedString());
-    dataInfo.put("DistanceSum", composition.getDistanceSum());
-    dataInfo.put("ProbSum", composition.getLogProbSum());
-    dataInfo.put("SegmentedString", composition.getSegmentedString());
-    return dataInfo;
-  }
-
-  private Object createFeature(List<SuggestionItem> items) {
-    List<Map<String, Object>> datas = new ArrayList<>();
-    for (SuggestionItem suggestionItem : items) {
-      Map<String, Object> itemInfo = new HashMap<>();
-      itemInfo.put("term", suggestionItem.getTerm().trim());
-      itemInfo.put("count", suggestionItem.getCount());
-      itemInfo.put("distance", suggestionItem.getDistance());
-      itemInfo.put("score", suggestionItem.getScore());
-      datas.add(itemInfo);
+    private Object createFeatureComp(final Composition composition) {
+        final Map<String, Object> dataInfo = new HashMap<>();
+        dataInfo.put("CorrectedString", composition.getCorrectedString());
+        dataInfo.put("DistanceSum", composition.getDistanceSum());
+        dataInfo.put("ProbSum", composition.getLogProbSum());
+        dataInfo.put("SegmentedString", composition.getSegmentedString());
+        return dataInfo;
     }
-    return datas;
 
-  }
+    private Object createFeature(final List<SuggestionItem> items) {
+        final List<Map<String, Object>> datas = new ArrayList<>();
+        for (SuggestionItem suggestionItem : items) {
+            final Map<String, Object> itemInfo = new HashMap<>();
+            itemInfo.put("term", suggestionItem.getTerm().trim());
+            itemInfo.put("count", suggestionItem.getCount());
+            itemInfo.put("distance", suggestionItem.getDistance());
+            itemInfo.put("score", suggestionItem.getScore());
+            datas.add(itemInfo);
+        }
+        return datas;
 
-  private void initSpellCheck() {
-    List<SearchComponent> components = getComponents();
-    SearchComponent spellComponent = null;
-    for (SearchComponent searchComponent : components) {
-      if (searchComponent instanceof SpellcheckComponent) {
-        spellComponent = searchComponent;
-        break;
-      }
     }
-    if (spellComponent == null) {
-      throw new SolrException(ErrorCode.BAD_REQUEST, "Component Should be SpellCheck");
-    }
-    spellCheckComponent = (SpellcheckComponent) spellComponent;
-    spellChecker = spellCheckComponent.getSpellChecker();
-  }
 
-  @Override
-  public String getDescription() {
-    return "Spellcheck based request handler";
-  }
+    private void initSpellCheck() {
+        final List<SearchComponent> components = getComponents();
+        SearchComponent spellComponent = null;
+        for (SearchComponent searchComponent : components) {
+            if (searchComponent instanceof SpellcheckComponent) {
+                spellComponent = searchComponent;
+                break;
+            }
+        }
+        if (spellComponent == null) {
+            throw new SolrException(ErrorCode.BAD_REQUEST, "Component Should be SpellCheck");
+        }
+        spellCheckComponent = (SpellcheckComponent) spellComponent;
+        spellChecker = spellCheckComponent.getSpellChecker();
+    }
+
+    @Override
+    public String getDescription() {
+        return "Spellcheck based request handler";
+    }
 }
