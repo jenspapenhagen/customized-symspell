@@ -58,12 +58,48 @@ public class Utf16HashFunction implements HashFunction {
             h ^= data.charAt(i) & MAGIC_0Xffff;
         }
 
+        return mix(h);
+    }
+
+    /**
+     * Hashes the first {@code length} characters of the given array over their UTF-16 code units.
+     * This is the allocation free variant used by the lookup hot path, which builds delete
+     * candidates in a reusable buffer.
+     *
+     * @param data the characters to hash
+     * @param length the number of characters to hash
+     * @return the hash value
+     */
+    public long hash(final char[] data, final int length) {
+        long h = MAGIC_0X9E3779B185EBCA87 ^ length;
+
+        int i = 0;
+        for (; i + 1 < length; i += 2) {
+            long v = (data[i] & MAGIC_0Xffff)
+                    | ((data[i + 1] & MAGIC_0Xffff) << MAGIC_16);
+
+            v *= MAGIC_0XC2B2AE3D27D4EB4F;
+            v ^= v >>> MAGIC_33;
+            v *= MAGIC_0X9E3779B185EBCA87;
+
+            h ^= v;
+            h = Long.rotateLeft(h, MAGIC_27) * MAGIC_5 + MAGIC_0X52DCE729;
+        }
+
+        if (i < length) {
+            h ^= data[i] & MAGIC_0Xffff;
+        }
+
+        return mix(h);
+    }
+
+    private static long mix(final long value) {
+        long h = value;
         h ^= h >>> MAGIC_33;
         h *= MAGIC_0XFF51AFD7ED558CCD;
         h ^= h >>> MAGIC_33;
         h *= MAGIC_0XC4CEB9FE1A85EC53;
         h ^= h >>> MAGIC_33;
-
         return h;
     }
 }

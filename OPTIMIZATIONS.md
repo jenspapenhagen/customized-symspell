@@ -336,3 +336,78 @@ Bewertung: **nicht übernommen**.
 - Änderung würde bestehende Ranking-Tests und die TOP/CLOSEST-Semantik brechen.
 
 Übernehmbare Teilidee (falls später gewünscht): Double-Metaphone nur als Tie-Breaker bei gleicher Distanz und Frequenz, optional und standardmäßig aus – nicht global in `compareTo`.
+
+## Deutsche Rechtschreibung: Sub-Match-Vermeidung (2026-11-05)
+
+- Neues opt-in Setting `SpellCheckSettings.builder().noSubMatches(true)` (Default `false`).
+- In `SymSpellCheck.lookupSplitWords`: bei fehlender Bigramm-Frequenz wird ein Split nur akzeptiert, wenn beide Teile einen exakten Dictionary-Treffer haben (Distanz 0). Verhindert spurious Splits wie „Kaffee" → „Kaf" + „fee".
+- Test `NoSubMatchesTest`: Setting-Roundtrip + exakter Split „hausboot" → „haus boot" bleibt erlaubt.
+- Default bewusst `false`, weil `true` Kontraktionen wie „couldn'tread" → „couldn't read" in bestehenden Tests brach (Teil „couldn't" hat keinen exakten Treffer).
+- Weitere Bericht-Empfehlungen (Hunspell COMPOUNDRULE, Kontext-Ranking, neuronale Reranker) bewusst nicht umgesetzt: benötigen linguistische Zusatzdaten bzw. Modell-Inferenz und passen nicht in eine reine Lookup-Bibliothek.
+
+## Hotspot-Runde 3: Allokationen und Dedupe (2026-11-05)
+
+Ausgangspunkt war ein JFR-Profil der reinen Lookup-Phase (82.761 Wörter, 675 Samples):
+`StringHashSet.add` 36,2 %, `SymSpellCheck.lookup` 18,6 %, `bitParallelOsa` 15,1 %,
+`Arrays.fill(long[])` 4,8 %, `ThreadLocalMap.getEntry` 3,6 %; Allokationen: `byte[]` 41,9 %,
+`SuggestionItem` 25,3 %, `String` 16,0 %, `Object[]` 11,9 %.
+
+### 1. `IntHashSet` statt `StringHashSet` für Suggestion-Dedupe
+- Neu `impl/IntHashSet.java`: generation-basiertes Open-Addressing-Set für `int`, gepackt in
+  `long[] entries` (Generation in den oberen 32 Bit, Wert in den unteren). Ein Array-Zugriff pro Add.
+- Resize wird **vor** der Probing-Schleife geprüft, damit `add` inline-fähig bleibt.
+- Mikrobenchmark: 2,69 ns/Add. Instrumentierung: ALL ≈ 128,7 Adds/Query (103,1 unique),
+  TOP ≈ 19,3 (16,5 unique), 0 Resizes — Dedupe bleibt also nötig.
+- `LookupScratch` hält jetzt `IntHashSet consideredSuggestionIds` zusätzlich zu den String-Sets
+  des generischen Pfads.
+
+### 2. String-freier Lookup-Fast-Path (`SymSpellCheck.lookupInMemory`)
+- Aktiv für `InMemoryDataHolder` und `prefixLength <= 32`.
+- Kandidaten-BFS arbeitet auf `int[] masks` (Bitmaske der gelöschten Positionen) statt auf
+  `String`-Objekten in einer `ArrayDeque`; Kandidatenzeichen werden in einen wiederverwendeten
+  `char[] candidateChars` gebaut und direkt gegen `LongIntMap` geprobt.
+- Kind-Erzeugung ohne Dedupe-Set: nur der Parent, der die Maske zuerst erreicht, enqueued sie
+  (`originalIndex > highestDeleted`, `highestDeleted = 31 - numberOfLeadingZeros(mask)`).
+  Reihenfolge bleibt identisch zum bisherigen BFS.
+- Dedupe der Treffer über Term-ID (`consideredSuggestionIds`), nicht über den Term-String.
+- `Utf16HashFunction.hash(char[], int)` als allocation-freie Überladung; `InMemoryDataHolder.getHashFunction()`
+  liefert dafür `Utf16HashFunction`.
+- Ergebnis-Erzeugung lazy: `ALL` legt sofort an, `TOP`/`CLOSEST` nur bei tatsächlich besserem
+  Kandidaten (`ArrayList.set(0, …)` bzw. `clear()` + `add`).
+- Der generische String-Pfad bleibt als Fallback für fremde `DataHolder` und `prefixLength > 32` erhalten.
+
+### 3. Pattern-Masken-Cache im bit-parallelen OSA
+- `BitMasks` merkt sich das zuletzt verwendete Pattern (`Object pattern`); Masken werden nur bei
+  Identitätswechsel neu aufgebaut. Bei `getDistance(phrase, suggestion, max)` ist das Pattern
+  typischerweise dieselbe `phrase`-Instanz über alle Vorschläge eines Lookups.
+- Identitätsvergleich ist hier bewusst (kein `equals`): es geht um Wiederverwendung desselben
+  Maskenaufbaus, nicht um inhaltliche Gleichheit. SpotBugs-Ausnahme in `spotbugs-exclude.xml`
+  (`ES_COMPARING_PARAMETER_STRING_WITH_EQ`).
+- `BitMasks.reset()` nullt nur noch die tatsächlich belegten ASCII-Slots (`touchedAscii`), kein
+  `Arrays.fill` über 128 `long`.
+
+### Messungen (best of 25 Runden, 60.000 Warmup-Queries, 82.761 Wörter)
+| Stand | TOP | CLOSEST | ALL |
+|---|---|---|---|
+| Ausgangsbasis | 3,94 µs | 4,03 µs | 18,40 µs |
+| + char[]-Fast-Path, ID-Dedupe | 3,54 | 3,72 | 16,27 |
+| + Masken-Dedupe entfernt | 3,62 | 3,75 | 15,59 |
+| + gepacktes `IntHashSet` | 3,43 | 3,45 | 15,19 |
+| + Pattern-Masken-Cache | 3,25–3,31 | 3,28–3,37 | 12,94–13,02 |
+| + Resize-Vorverlagerung (Endstand) | 3,25–3,42 | 3,30–3,50 | 12,9–16,3 |
+
+Die Streuung im Endstand stammt von Systemlast (Load Average ~4 auf 16 Kernen während der
+Messreihe); unter Last sind 15–16 µs für ALL reproduzierbar, im Ruhezustand 12,9–13,0 µs.
+A/B-Vergleiche daher nur über mehrere Läufe und Minima.
+
+### Verworfene Experimente dieser Runde
+- `new ArrayList<>(verbosity == ALL ? 128 : topK)`: ALL 14,5–15,0 µs (schlechter, das 128er-Array
+  pro Query kostet mehr als das Nachwachsen).
+- Dedupe komplett entfernt: ALL 13,9–14,4 µs statt ~13 µs (doppelte Distanzberechnungen).
+- `-XX:+UseEpsilonGC -Xmx4g`: ALL 17–18 µs, kein geeignetes Mess-Setup.
+
+### Offen
+- `SuggestionItem`-Allokation bei `Verbosity.ALL` ist API-bedingt (Rückgabe `List<SuggestionItem>`);
+  eine Lazy-View würde die öffentliche Schnittstelle ändern.
+- `deleteInSuggestionPrefix`, `isDistanceCalculationRequired` und `ThreadLocalMap.getEntry` sind
+  mikrotechnisch noch nicht weiter optimiert.

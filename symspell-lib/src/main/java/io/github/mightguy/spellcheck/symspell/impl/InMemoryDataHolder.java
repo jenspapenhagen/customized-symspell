@@ -183,7 +183,7 @@ public class InMemoryDataHolder implements DataHolder {
      *
      * @return the hash function, never {@code null}
      */
-    public io.github.mightguy.spellcheck.symspell.api.HashFunction getHashFunction() {
+    public Utf16HashFunction getHashFunction() {
         return hashFunction;
     }
 

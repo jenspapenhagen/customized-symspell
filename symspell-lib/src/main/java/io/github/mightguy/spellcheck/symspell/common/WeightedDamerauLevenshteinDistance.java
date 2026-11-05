@@ -218,9 +218,18 @@ public class WeightedDamerauLevenshteinDistance implements StringDistance {
         }
 
         final BitMasks masks = BIT_MASKS.get();
-        masks.reset();
-        for (int i = 0; i < patternLength; i++) {
-            masks.add(pattern.charAt(i), i);
+        /*
+            The max distance variant is called with the very same phrase and many different
+            suggestions, so the pattern masks can be reused as long as the pattern object is
+            identical. Rebuilding them cost a reset plus one update per pattern character.
+         */
+        final Object patternKey = pattern;
+        if (masks.pattern != patternKey) {
+            masks.reset();
+            for (int i = 0; i < patternLength; i++) {
+                masks.add(pattern.charAt(i), i);
+            }
+            masks.pattern = patternKey;
         }
 
         long vp = -1L;
@@ -266,20 +275,32 @@ public class WeightedDamerauLevenshteinDistance implements StringDistance {
 
         private final long[] ascii = new long[MAGIC_128];
 
+        private final char[] touchedAscii = new char[MAGIC_128];
+
         private final char[] otherCharacters = new char[MAX_BIT_PARALLEL_LENGTH];
 
         private final long[] otherMasks = new long[MAX_BIT_PARALLEL_LENGTH];
 
+        private int touchedCount;
+
         private int otherCount;
 
+        private Object pattern;
+
         void reset() {
-            Arrays.fill(ascii, 0L);
+            for (int i = 0; i < touchedCount; i++) {
+                ascii[touchedAscii[i]] = 0L;
+            }
+            touchedCount = 0;
             otherCount = 0;
         }
 
         void add(final char character, final int bit) {
             final long mask = 1L << bit;
             if (character < MAGIC_128) {
+                if (ascii[character] == 0L) {
+                    touchedAscii[touchedCount++] = character;
+                }
                 ascii[character] |= mask;
                 return;
             }

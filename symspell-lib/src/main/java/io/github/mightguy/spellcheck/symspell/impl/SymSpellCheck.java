@@ -9,11 +9,13 @@ import io.github.mightguy.spellcheck.symspell.common.SpellCheckSettings;
 import io.github.mightguy.spellcheck.symspell.common.SpellHelper;
 import io.github.mightguy.spellcheck.symspell.common.StringNormalizer;
 import io.github.mightguy.spellcheck.symspell.common.SuggestionItem;
+import io.github.mightguy.spellcheck.symspell.common.Utf16HashFunction;
 import io.github.mightguy.spellcheck.symspell.common.Verbosity;
 import io.github.mightguy.spellcheck.symspell.exception.SpellCheckException;
 import io.github.mightguy.spellcheck.symspell.exception.SpellCheckExceptionCode;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
@@ -252,6 +254,14 @@ public class SymSpellCheck extends SpellChecker {
 
             final Double bigramFreq = dataHolder.getItemFrequencyBiGram(split);
 
+            // Reject spurious splits whose parts are only corrections, not real dictionary terms.
+            // A known bigram is strong evidence, so it overrides this guard.
+            if (spellCheckSettings.isNoSubMatches() && bigramFreq == null
+                    && (suggestions1.get(0).getDistance() > 0
+                    || suggestions2.get(0).getDistance() > 0)) {
+                continue;
+            }
+
             //if bigram exists in bigram dictionary
             if (bigramFreq != null) {
                 count = bigramFreq;
@@ -363,15 +373,24 @@ public class SymSpellCheck extends SpellChecker {
 
         consideredSuggestions.add(phrase);
 
+        final int phrasePrefixLen = Math.min(phraseLen, prefixLength);
+
+        /*
+            Fast path: the in-memory holder addresses terms by id and indexes deletes by 64 bit
+            hash, so candidates can be enumerated as delete masks over a reusable char buffer. That
+            removes the string allocation and string hashing of the generic delete generation.
+         */
+        if (dataHolder instanceof InMemoryDataHolder && phrasePrefixLen <= MAGIC_32) {
+            return lookupInMemory(phrase, phraseLen, prefixLength, verbosity, maxEditDistance,
+                    suggestionItems, scratch, (InMemoryDataHolder) dataHolder);
+        }
+
         double maxEditDistance2 = maxEditDistance;
-        final int phrasePrefixLen;
         final Queue<String> candidates = new ArrayDeque<>();
 
         if (phraseLen > prefixLength) {
-            phrasePrefixLen = prefixLength;
             candidates.add(phrase.substring(0, phrasePrefixLen));
         } else {
-            phrasePrefixLen = phraseLen;
             candidates.add(phrase);
         }
 
@@ -548,12 +567,227 @@ public class SymSpellCheck extends SpellChecker {
         return suggestionItems;
     }
 
+    /**
+     * String free lookup path for the in-memory holder: delete candidates are represented as bit
+     * masks over the phrase prefix and materialised into a reusable char buffer, so no candidate
+     * string, hash set entry or queue node is allocated per lookup.
+     *
+     * @param phrase the normalized phrase
+     * @param phraseLen the length of the phrase
+     * @param prefixLength the configured prefix length
+     * @param verbosity the requested verbosity
+     * @param maxEditDistance the maximum edit distance
+     * @param suggestionItems the result list, prefilled with the exact match if present
+     * @param scratch the per thread scratch buffers
+     * @param inMemory the in-memory dictionary holder
+     * @return the matching suggestions, never {@code null}
+     */
+    private List<SuggestionItem> lookupInMemory(final String phrase, final int phraseLen,
+            final int prefixLength, final Verbosity verbosity, final double maxEditDistance,
+            final List<SuggestionItem> suggestionItems, final LookupScratch scratch,
+            final InMemoryDataHolder inMemory) {
+
+        final String[] terms = inMemory.getTerms();
+        final double[] frequencies = inMemory.getFrequencies();
+        final LongIntMap index = inMemory.getDeleteIndex();
+        final int[][] buckets = inMemory.getDeleteBuckets();
+        final Utf16HashFunction hashFunction = inMemory.getHashFunction();
+        final int indexMask = index.getMask();
+        final int phrasePrefixLen = Math.min(phraseLen, prefixLength);
+
+        char[] prefixChars = scratch.prefixChars;
+        if (prefixChars.length < phrasePrefixLen) {
+            prefixChars = new char[phrasePrefixLen];
+            scratch.prefixChars = prefixChars;
+        }
+        phrase.getChars(0, phrasePrefixLen, prefixChars, 0);
+
+        char[] candidateChars = scratch.candidateChars;
+        if (candidateChars.length < phrasePrefixLen) {
+            candidateChars = new char[phrasePrefixLen];
+            scratch.candidateChars = candidateChars;
+        }
+
+        int[] masks = scratch.candidateMasks;
+        masks[0] = 0;
+        int head = 0;
+        int tail = 1;
+
+        final IntHashSet consideredSuggestionIds = scratch.consideredSuggestionIds;
+
+        double maxEditDistance2 = maxEditDistance;
+
+        while (head < tail) {
+            final int mask = masks[head++];
+            final int lenDiff = Integer.bitCount(mask);
+            final int candidateLen = phrasePrefixLen - lenDiff;
+
+            /*
+                early termination: if candidate distance is already higher than suggestion distance,
+                than there are no better suggestions to be expected
+             */
+            if (lenDiff > maxEditDistance2) {
+                if (verbosity == Verbosity.ALL) {
+                    continue;
+                }
+                break;
+            }
+
+            int write = 0;
+            for (int i = 0; i < phrasePrefixLen; i++) {
+                if ((mask & (1 << i)) == 0) {
+                    candidateChars[write++] = prefixChars[i];
+                }
+            }
+
+            final long storedKey = hashFunction.hash(candidateChars, candidateLen) + 1L;
+            int slot = ((int) (storedKey >>> MAGIC_32) ^ (int) storedKey) & indexMask;
+            int bucket = -1;
+            while (true) {
+                final long currentKey = index.getKey(slot);
+                if (currentKey == 0L) {
+                    break;
+                }
+                if (currentKey == storedKey) {
+                    bucket = index.getValue(slot);
+                    break;
+                }
+                slot = (slot + 1) & indexMask;
+            }
+
+            if (bucket >= 0) {
+                final int[] deleteIds = buckets[bucket];
+                for (int k = 0; k < deleteIds.length; k++) {
+                    final int deleteId = deleteIds[k];
+                    final String suggestion = terms[deleteId];
+                    final int suggestionLen = suggestion.length();
+                    if (filterOnEquivalance(candidateChars, candidateLen, suggestion, phrase, maxEditDistance2)
+                            || filterOnPrefixLen(suggestionLen, prefixLength, phrasePrefixLen, candidateLen,
+                            maxEditDistance2)) {
+                        continue;
+                    }
+
+                    final double distance;
+                    if (candidateLen == 0) {
+                        /*
+                            suggestions which have no common chars with phrase
+                         */
+                        distance = Math.max(phraseLen, suggestionLen);
+                        if (distance > maxEditDistance2 || !consideredSuggestionIds.add(deleteId)) {
+                            continue;
+                        }
+                    } else if (suggestionLen == 1) {
+                        distance = phrase.indexOf(suggestion.charAt(0)) < 0 ? phraseLen : phraseLen - 1;
+                        if (distance > maxEditDistance2 || !consideredSuggestionIds.add(deleteId)) {
+                            continue;
+                        }
+                    } else {
+                        final int minDistance = getMinDistanceOnPrefixbasis(maxEditDistance, candidateLen, phrase,
+                                suggestion);
+                        if (isDistanceCalculationRequired(phrase, maxEditDistance, minDistance, suggestion,
+                                candidateLen)) {
+                            continue;
+                        }
+                        if (verbosity != Verbosity.ALL
+                                && !deleteInSuggestionPrefix(candidateChars, candidateLen, suggestion, suggestionLen)
+                                || !consideredSuggestionIds.add(deleteId)) {
+                            continue;
+                        }
+                        final double computed = stringDistance.getDistance(phrase, suggestion, maxEditDistance2);
+                        if (computed < 0) {
+                            continue;
+                        }
+                        distance = computed;
+                    }
+
+                    if (!SpellHelper.isLessOrEqualDouble(distance, maxEditDistance2, MAGIC_0_01)) {
+                        continue;
+                    }
+
+                    final double suggestionCount = frequencies[deleteId];
+                    /*
+                        Only allocate a suggestion item when it is actually kept: TOP and CLOSEST
+                        discard most candidates, so materialising them eagerly dominated the
+                        allocation profile.
+                     */
+                    if (verbosity == Verbosity.ALL) {
+                        suggestionItems.add(new SuggestionItem(suggestion, distance, suggestionCount));
+                        continue;
+                    }
+                    if (suggestionItems.isEmpty()) {
+                        maxEditDistance2 = distance;
+                        suggestionItems.add(new SuggestionItem(suggestion, distance, suggestionCount));
+                        continue;
+                    }
+                    if (verbosity == Verbosity.TOP) {
+                        if (SpellHelper.isLessDouble(distance, maxEditDistance2, MAGIC_0_01)
+                                || suggestionCount > suggestionItems.get(0).getCount()) {
+                            maxEditDistance2 = distance;
+                            suggestionItems.set(0, new SuggestionItem(suggestion, distance, suggestionCount));
+                        }
+                        continue;
+                    }
+                    if (distance < maxEditDistance2) {
+                        suggestionItems.clear();
+                    }
+                    maxEditDistance2 = distance;
+                    suggestionItems.add(new SuggestionItem(suggestion, distance, suggestionCount));
+                }
+            }
+
+            if (lenDiff < maxEditDistance && candidateLen <= prefixLength) {
+                if (verbosity != Verbosity.ALL && lenDiff >= maxEditDistance2) {
+                    continue;
+                }
+
+                /*
+                    Children are the current mask plus exactly one additional deleted position, so a
+                    child keeps the same string as the corresponding string delete of the candidate.
+                    A mask is only enqueued by the parent it was first reached from: the parent whose
+                    added position is larger than every already deleted position. Every other parent
+                    would produce a duplicate, so no deduplication set and no candidate string is
+                    needed at all.
+                 */
+                final int highestDeleted = mask == 0 ? -1
+                        : Integer.SIZE - 1 - Integer.numberOfLeadingZeros(mask);
+                int originalIndex = 0;
+                for (int i = 0; i < candidateLen; i++) {
+                    while ((mask & (1 << originalIndex)) != 0) {
+                        originalIndex++;
+                    }
+                    if (originalIndex > highestDeleted) {
+                        final int childMask = mask | (1 << originalIndex);
+                        if (tail == masks.length) {
+                            masks = Arrays.copyOf(masks, masks.length * 2);
+                            scratch.candidateMasks = masks;
+                        }
+                        masks[tail++] = childMask;
+                    }
+                    originalIndex++;
+                }
+            }
+        }
+
+        return suggestionItems;
+    }
+
 
     private int getMinDistanceOnPrefixbasis(final double maxEditDistance, final String candidate, final String
             phrase,
             final String suggestion) {
         if (Double.compare(spellCheckSettings.getPrefixLength() - maxEditDistance,
                 candidate.length()) == 0) {
+            return
+                    Math.min(phrase.length(), suggestion.length()) - spellCheckSettings.getPrefixLength();
+        } else {
+            return 0;
+        }
+    }
+
+    private int getMinDistanceOnPrefixbasis(final double maxEditDistance, final int candidateLen, final String phrase,
+            final String suggestion) {
+        if (Double.compare(spellCheckSettings.getPrefixLength() - maxEditDistance,
+                candidateLen) == 0) {
             return
                     Math.min(phrase.length(), suggestion.length()) - spellCheckSettings.getPrefixLength();
         } else {
@@ -579,6 +813,26 @@ public class SymSpellCheck extends SpellChecker {
                 || (deleteLen < candidate.length())
                 || (deleteLen == candidate.length() && !delete.equals(candidate))
                 || (deleteLen == phraseLen && delete.equals(phrase));
+    }
+
+    private boolean filterOnEquivalance(final char[] candidate, final int candidateLen, final String suggestion,
+            final String phrase, final double maxEditDistance2) {
+
+        final int deleteLen = suggestion.length();
+        final int phraseLen = phrase.length();
+        return (Math.abs(deleteLen - phraseLen) > maxEditDistance2)
+                || (deleteLen < candidateLen)
+                || (deleteLen == candidateLen && !regionMatches(suggestion, candidate, candidateLen))
+                || (deleteLen == phraseLen && suggestion.equals(phrase));
+    }
+
+    private static boolean regionMatches(final String value, final char[] chars, final int length) {
+        for (int i = 0; i < length; i++) {
+            if (value.charAt(i) != chars[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -608,10 +862,58 @@ public class SymSpellCheck extends SpellChecker {
         return true;
     }
 
+    private boolean deleteInSuggestionPrefix(final char[] candidate, final int candidateLen,
+            final String suggestion, final int theSuggestionLen) {
+        int suggestionLen = theSuggestionLen;
+        if (candidateLen == 0) {
+            return true;
+        }
+        if (spellCheckSettings.getPrefixLength() < suggestionLen) {
+            suggestionLen = spellCheckSettings.getPrefixLength();
+        }
+
+        int j = 0;
+        for (int i = 0; i < candidateLen; i++) {
+            final char delChar = candidate[i];
+            while (j < suggestionLen && delChar != suggestion.charAt(j)) {
+                j++;
+            }
+            if (j == suggestionLen) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private boolean isDistanceCalculationRequired(final String phrase, final double maxEditDistance, final int min,
             final String suggestion, final String candidate) {
         if (Double.compare(spellCheckSettings.getPrefixLength() - maxEditDistance,
                 candidate.length()) == 0 && min > 1) {
+            final int trailingLength = min - 1;
+            final int phraseFrom = phrase.length() - trailingLength;
+            final int suggestionFrom = suggestion.length() - trailingLength;
+            if (phraseFrom >= 0 && suggestionFrom >= 0
+                    && !sameTrailingCharacters(phrase, phraseFrom, suggestion, suggestionFrom,
+                    trailingLength)) {
+                return true;
+            }
+        }
+
+        if (min > 0) {
+            final int phraseLast = phrase.length() - min;
+            final int suggestionLast = suggestion.length() - min;
+            return phrase.charAt(phraseLast) != suggestion.charAt(suggestionLast)
+                    && (phraseLast > 0 && suggestionLast > 0)
+                    && (phrase.charAt(phraseLast - 1) != suggestion.charAt(suggestionLast)
+                            || phrase.charAt(phraseLast) != suggestion.charAt(suggestionLast - 1));
+        }
+        return false;
+    }
+
+    private boolean isDistanceCalculationRequired(final String phrase, final double maxEditDistance, final int min,
+            final String suggestion, final int candidateLen) {
+        if (Double.compare(spellCheckSettings.getPrefixLength() - maxEditDistance,
+                candidateLen) == 0 && min > 1) {
             final int trailingLength = min - 1;
             final int phraseFrom = phrase.length() - trailingLength;
             final int suggestionFrom = suggestion.length() - trailingLength;

@@ -95,6 +95,12 @@ public class SpellCheckSettings {
      */
     private boolean transliterate = false;
 
+    /**
+     * True if a compound split is only accepted when both parts are real dictionary terms or the
+     * bigram is known. Prevents spurious splits such as "Kaffee" into "Kaf" + "fee".
+     */
+    private boolean noSubMatches = false;
+
     private SpellCheckSettings(final Verbosity verbosityValue, final int topKValue, final float deletionWeightValue,
             final float insertionWeightValue, final float replaceWeightValue, final float transpositionWeightValue,
             final boolean lowerCaseTermsValue, final double maxEditDistanceValue,
@@ -102,7 +108,7 @@ public class SpellCheckSettings {
             final int maxLengthValue, final double bigramCountMinValue,
             final boolean ignoreUnknownValue, final double editFactorValue,
             final boolean doKeySplitValue, final String keySplitRegexValue,
-            final boolean transliterateValue) {
+            final boolean transliterateValue, final boolean noSubMatchesValue) {
         this.verbosity = verbosityValue;
         this.topK = topKValue;
         this.deletionWeight = deletionWeightValue;
@@ -120,6 +126,7 @@ public class SpellCheckSettings {
         this.doKeySplit = doKeySplitValue;
         this.keySplitRegex = keySplitRegexValue;
         this.transliterate = transliterateValue;
+        this.noSubMatches = noSubMatchesValue;
     }
 
     /**
@@ -264,6 +271,20 @@ public class SpellCheckSettings {
         return transliterate;
     }
 
+    /**
+     * @return true if compound splits require real dictionary parts
+     */
+    public boolean isNoSubMatches() {
+        return noSubMatches;
+    }
+
+    /**
+     * @param noSubMatchesValue true to reject splits whose parts are not dictionary terms
+     */
+    public void setNoSubMatches(final boolean noSubMatchesValue) {
+        this.noSubMatches = noSubMatchesValue;
+    }
+
     @Override
     public String toString() {
         return "SpellCheckSettings(verbosity=" + verbosity
@@ -282,7 +303,8 @@ public class SpellCheckSettings {
                 + ", editFactor=" + editFactor
                 + ", doKeySplit=" + doKeySplit
                 + ", keySplitRegex=" + keySplitRegex
-                + ", transliterate=" + transliterate + ")";
+                + ", transliterate=" + transliterate
+                + ", noSubMatches=" + noSubMatches + ")";
     }
 
     /**
@@ -308,6 +330,8 @@ public class SpellCheckSettings {
         private boolean doKeySplit = true;
         private String keySplitRegex = "\\s+";
         private boolean transliterate = false;
+
+        private boolean noSubMatches = false;
 
         /**
          * @param verbosity the verbosity used for lookups
@@ -465,13 +489,22 @@ public class SpellCheckSettings {
         }
 
         /**
+         * @param noSubMatchesValue true to reject splits whose parts are not dictionary terms
+         * @return this builder
+         */
+        public SpellCheckSettingsBuilder noSubMatches(final boolean noSubMatchesValue) {
+            this.noSubMatches = noSubMatchesValue;
+            return this;
+        }
+
+        /**
          * @return the immutable-by-convention settings
          */
         public SpellCheckSettings build() {
             return new SpellCheckSettings(verbosity, topK, deletionWeight, insertionWeight,
                     replaceWeight, transpositionWeight, lowerCaseTerms, maxEditDistance, prefixLength,
                     countThreshold, maxLength, bigramCountMin, ignoreUnknown, editFactor, doKeySplit,
-                    keySplitRegex, transliterate);
+                    keySplitRegex, transliterate, noSubMatches);
         }
     }
 }

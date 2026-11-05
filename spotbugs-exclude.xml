@@ -140,4 +140,12 @@
     <Match>
         <Bug pattern="OCP_OVERLY_CONCRETE_COLLECTION_PARAMETER" />
     </Match>
+
+    <!-- Identity comparison is intentional: cached pattern bit masks are reused while the
+         very same phrase object is looked up against many suggestions -->
+    <Match>
+        <Class name="io.github.mightguy.spellcheck.symspell.common.WeightedDamerauLevenshteinDistance" />
+        <Method name="bitParallelOsa" />
+        <Bug pattern="ES_COMPARING_PARAMETER_STRING_WITH_EQ" />
+    </Match>
 </FindBugsFilter>
