@@ -111,6 +111,21 @@ Word deletes are generated with taking edit distance which is minimum of max edi
 
 ## [Solr Usage](symspell-solr/README.md)
 
+## Web Demo (search + „Meinten Sie nicht …?“)
+
+`symspell-service` liefert eine kleine lokale Suchoberfläche mit Vorschlägen und
+Did-you-mean-Korrektur auf Basis des mitgelieferten deutschen Frequenzwörterbuchs
+(`de-100k.txt`, 100.000 Begriffe).
+
+```bash
+mvn -pl symspell-service -am package -DskipTests
+java -jar symspell-service/target/symspell-service-6.7-SNAPSHOT.jar
+```
+
+Danach <http://localhost:8080> öffnen. Die JSON-Schnittstelle liegt unter
+`GET /api/suggest?q=rechnug&k=10` und liefert Vorschläge, die beste Korrektur sowie
+die Lookup-Dauer in Mikrosekunden.
+
 ## Accuracy Summary
 
 > Indexed Docs: 3695 

@@ -411,3 +411,68 @@ A/B-Vergleiche daher nur über mehrere Läufe und Minima.
   eine Lazy-View würde die öffentliche Schnittstelle ändern.
 - `deleteInSuggestionPrefix`, `isDistanceCalculationRequired` und `ThreadLocalMap.getEntry` sind
   mikrotechnisch noch nicht weiter optimiert.
+
+## Bewertung dreier Vorschläge (2026-11-05)
+
+### 1. Kölner Phonetik als Pre-Filter — verworfen (gemessen)
+
+Messung mit `de-100k.txt` (100.000 Terme) und 1.901 künstlich verrauschten Queries
+(1–2 zufällige Edits, Seed 42):
+
+| Kennzahl | Wert |
+|---|---|
+| distinkte Kölner Codes | 49.510 (Ø 2,02 Terme pro Code, max. 80) |
+| Original im Ergebnis gefunden | 1.883 von 1.901 (99,1 %) |
+| davon gleicher Code wie die Query | 492 (26,1 %) |
+| davon **anderer** Code | **1.391 (73,9 %)** |
+| Top-Vorschlag falsch, aber gleicher Code | 136 |
+
+Ein harter Pre-Filter `code(query) != code(candidate) → überspringen` würde also
+74 % der richtigen Korrekturen verwerfen. Phonetische Gleichheit ist weder
+notwendig noch hinreichend für eine gute Korrektur.
+
+Zusätzlich halten die Beispiele die Prämisse nicht: `Vati`/`Fati`, `Rad`/`Rat` und
+`Stiel`/`Stil` haben Edit-Distanz 1 und werden von SymSpell bereits gefunden
+(und beide Wörter stehen im Wörterbuch, die Auswahl ist eine Kontextfrage).
+
+Denkbar bleibt ein Tie-Breaker bei identischer Distanz und Frequenz (Homophone),
+aber dafür gibt es derzeit keinen belegten Qualitätsgewinn; Kosten wären ~4 Byte
+pro Term plus Code-Berechnung pro Query. **Nicht umgesetzt.**
+
+### 2. Viterbi-Komposita-Segmentierung — lohnt sich (mit Befund)
+
+Gemessener Ist-Zustand von `lookupCompound` (de-100k, maxEditDistance 2):
+
+| Eingabe | Ergebnis | Bewertung |
+|---|---|---|
+| `hausboot` | `haus boot` | korrekt |
+| `krankenhausapotheke` | `kranken apotheke` | **`haus` geht verloren** |
+| `sonnenblumenöl` | `sonnen blumen` | **`öl` geht verloren** |
+| `benutzeroberfläche` | `benutzer fläche` | **`ober` geht verloren** |
+| `haustürschlüssel` | `haust schlüssel` | falsche Trennung |
+| `autobahn` | `auto bahn` | lexikalisiertes Wort fehlt im Wörterbuch |
+| `donaudampfschifffahrt` | unverändert, Distanz 0 | kein Signal, obwohl nicht im Wörterbuch |
+
+Laufzeit: 0,4–3,9 ms pro Aufruf (Fallback-Pfad, nicht der 3,3-µs-Lookup).
+
+Der eigentliche Fehler ist strukturell: die heuristische Suche darf Teile
+auslassen, statt die Eingabe vollständig zu überdecken. Ein DP/Viterbi über alle
+Split-Positionen mit Unigram-Kosten (`-log(freq/total)` plus Strafe für unbekannte
+Teile) überdeckt per Konstruktion den gesamten String und findet das globale Optimum.
+Aufwand: ~150–250 Zeilen, nutzt vorhandene `StringIntMap`/Termfrequenzen, nur im
+Compound-Pfad aktiv. Nötig: Mindestlänge pro Teil, Kosten für unbekannte Teile,
+Vergleichs-Set deutscher Komposita, `noSubMatches` bleibt als Option.
+**Empfehlung: als opt-in umsetzen und gegen die obigen Fälle messen.**
+
+### 3. Kontextuelles Reranking (KenLM) — nicht im Core
+
+Die Prämisse stimmt: `lookup("das")` liefert `dass` mit Distanz 1, und ohne Satz
+lässt sich das nicht entscheiden. Aber die Lookup-API bekommt genau ein Token –
+es gibt keinen Kontext, den ein Sprachmodell bewerten könnte. Das erfordert eine
+Satz-API, ein Modell in dreistelliger MB- bis GB-Größe und JNI oder einen
+ARPA-Parser. Der Hotpath bliebe unberührt, der Nutzen läge aber in einem anderen
+Produkt (Satz-Rechtschreibprüfung), nicht in dieser Lookup-Bibliothek.
+
+Günstigere Variante mit vorhandenen Daten: die bereits geladene Bigramm-Frequenz
+für das Reranking von Komposita-Splits nutzen (`haus boot` vs. Alternativen) –
+nicht für Homophone. **Nicht umgesetzt.**
