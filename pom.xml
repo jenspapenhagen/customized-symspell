@@ -62,7 +62,7 @@
     <hamcrest.version>2.2</hamcrest.version>
     <jmh.version>1.19</jmh.version>
     <junit.version>4.12</junit.version>
-    <solr.version>8.7.0</solr.version>
+    <solr.version>10.1.0</solr.version>
     <springdoc.version>3.2.0</springdoc.version>
   </properties>
 
