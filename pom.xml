@@ -26,7 +26,7 @@
 
     <skip.unit.tests>false</skip.unit.tests>
 
-    <checkstyle.version>8.45</checkstyle.version>
+    <checkstyle.version>14.4.0</checkstyle.version>
     <checkstyle.location>${maven.multiModuleProjectDirectory}/checkstyle-toon.xml</checkstyle.location>
     <checkstyle.exclusions>checkstyle-suppressions.xml</checkstyle.exclusions>
     <failOnStyleViolation>true</failOnStyleViolation>
