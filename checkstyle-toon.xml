@@ -69,7 +69,8 @@
             <property name="allowMissingReturnTag" value="true"/>
         </module>
         <module name="JavadocType"/>
-        <module name="JavadocStyle"/>
+        <!-- JavadocStyle was removed in Checkstyle 14; SummaryJavadoc checks the first sentence. -->
+        <module name="SummaryJavadoc"/>
         
         <!-- Error Prevention -->
         <module name="EmptyStatement"/>

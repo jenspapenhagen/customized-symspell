@@ -56,7 +56,7 @@ public interface DataHolder {
      * @return the matching term ids, or {@code null} if unsupported or the delete is unknown
      * @throws SpellCheckException if the lookup fails
      */
-    public default int[] getDeleteIds(String key) throws SpellCheckException {
+    public default int[] getDeleteIds(final String key) throws SpellCheckException {
         return null;
     }
 
@@ -76,7 +76,7 @@ public interface DataHolder {
      * @param id the term id
      * @return the term, or {@code null} if the id is unknown
      */
-    public default String getTerm(int id) {
+    public default String getTerm(final int id) {
         return null;
     }
 
@@ -86,7 +86,7 @@ public interface DataHolder {
      * @param id the term id
      * @return the frequency, or {@code 0.0} if the id is unknown
      */
-    public default double getTermFrequency(int id) {
+    public default double getTermFrequency(final int id) {
         return 0.0;
     }
 
