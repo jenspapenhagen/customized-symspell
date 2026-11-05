@@ -277,7 +277,8 @@
       <plugin>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-maven-plugin</artifactId>
-        <version>4.10.5.0</version>
+        <!-- 4.10+ requires Maven 3.8.9; the project is also built with Maven 3.8.7 locally. -->
+        <version>4.9.8.0</version>
         <configuration>
           <effort>Max</effort>
           <threshold>Medium</threshold>

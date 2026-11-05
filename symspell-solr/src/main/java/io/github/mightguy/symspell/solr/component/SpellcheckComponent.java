@@ -24,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.solr.common.StringUtils;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.NamedList;
@@ -169,7 +168,7 @@ public class SpellcheckComponent extends SearchComponent implements SolrCoreAwar
 
     @Override
     public Category getCategory() {
-        return Category.SPELLCHECKER;
+        return Category.QUERY;
     }
 
     private StringDistance getStringDistance(final NamedList spellchecker,
@@ -248,17 +247,17 @@ public class SpellcheckComponent extends SearchComponent implements SolrCoreAwar
             final SpellChecker theSpellChecker,
             final SolrCore core, final String exclusionListSperatorRegex) {
         try {
-            if (!StringUtils.isEmpty(unigramsFile)) {
+            if (unigramsFile != null && !unigramsFile.isEmpty()) {
                 loadUniGramFile(core.getResourceLoader().openResource(unigramsFile),
                         theSpellChecker.getDataHolder());
             }
 
-            if (!StringUtils.isEmpty(bigramsFile)) {
+            if (bigramsFile != null && !bigramsFile.isEmpty()) {
                 loadBiGramFile(core.getResourceLoader().openResource(bigramsFile),
                         theSpellChecker.getDataHolder());
             }
 
-            if (!StringUtils.isEmpty(exclusionsFile)) {
+            if (exclusionsFile != null && !exclusionsFile.isEmpty()) {
                 loadExclusions(core.getResourceLoader().openResource(exclusionsFile),
                         theSpellChecker.getDataHolder(), exclusionListSperatorRegex);
             }

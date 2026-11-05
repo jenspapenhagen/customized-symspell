@@ -8,12 +8,17 @@ import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.IterationParams;
 import org.openjdk.jmh.profile.InternalProfiler;
 import org.openjdk.jmh.results.AggregationPolicy;
-import org.openjdk.jmh.results.Defaults;
 import org.openjdk.jmh.results.IterationResult;
 import org.openjdk.jmh.results.Result;
 import org.openjdk.jmh.results.ScalarResult;
 
 public class MemoryProfiler implements InternalProfiler {
+
+    /**
+     * Prefix used by JMH before 1.37 via {@code org.openjdk.jmh.results.Defaults#PREFIX}; the
+     * class was removed, the separator is kept for compatible secondary metric names.
+     */
+    private static final String METRIC_PREFIX = "\u00B7";
 
     @Override
     public String getDescription() {
@@ -33,10 +38,10 @@ public class MemoryProfiler implements InternalProfiler {
 
         Collection<ScalarResult> results = new ArrayList<>();
         results.add(
-                new ScalarResult(Defaults.PREFIX + "mem.heap", heapUsage.getUsed() / (1024 * 1024.0), "MB",
+                new ScalarResult(METRIC_PREFIX + "mem.heap", heapUsage.getUsed() / (1024 * 1024.0), "MB",
                         AggregationPolicy.MAX));
         results.add(new ScalarResult(
-                Defaults.PREFIX + "mem.nonheap", nonheapUsage.getUsed() / (1024 * 1024.0), "MB",
+                METRIC_PREFIX + "mem.nonheap", nonheapUsage.getUsed() / (1024 * 1024.0), "MB",
                 AggregationPolicy.MAX));
 
         return results;

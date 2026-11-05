@@ -11,6 +11,11 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "deps"
+    ignore:
+      # SpotBugs 4.10+ needs Maven >= 3.8.9, local builds still use 3.8.7.
+      - dependency-name: "com.github.spotbugs:spotbugs-maven-plugin"
+        versions:
+          - ">=4.10.0"
     groups:
       spring:
         patterns:

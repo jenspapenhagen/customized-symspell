@@ -15,6 +15,7 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.MultiFields;
+import org.apache.lucene.index.TermVectors;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.BytesRef;
@@ -96,6 +97,7 @@ public class CustomSpellCheckListner implements SolrEventListener {
         final long time = System.currentTimeMillis();
 
         final DirectoryReader productsIndexReader = newSearcher.getIndexReader();
+        final TermVectors termVectors = productsIndexReader.termVectors();
         final IndexSchema schema = newSearcher.getCore().getLatestSchema();
         final CharsRefBuilder charsRefBuilder = new CharsRefBuilder();
         for (String field : newSearcher.getFieldNames()) {
@@ -106,7 +108,7 @@ public class CustomSpellCheckListner implements SolrEventListener {
             final FieldType type = schema.getField(field).getType();
             int insertionsCount = 0;
             for (int docID = 0; docID < productsIndexReader.maxDoc(); docID++) {
-                final Terms terms = productsIndexReader.getTermVector(docID, field);
+                final Terms terms = termVectors.get(docID, field);
                 if (terms == null) {
                     continue;
                 }
