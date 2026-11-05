@@ -304,3 +304,18 @@ Wikipedia-Dump oder OpenSubtitles als Frequenzquelle.
   - Ergebnis: 0 Checkstyle-Violations in allen 5 Modulen.
 - `spotbugs-exclude.xml` (toon-java) aktiv; SpotBugs 4.8.6.7, effort max, threshold medium, failOnError.
 - Speed nach Umstellung: TOP ca. 3,7–4,1 µs, ALL ca. 14,8–20,2 µs (Messrauschen).
+
+## Ideen aus reneklacan/symspell (Rust)
+
+Analysiert wurden `src/symspell.rs` und `src/string_strategy.rs`.
+
+Übernommen:
+- **String-Strategy / ASCII-Transliteration**: Das Rust-Projekt normalisiert Terme über eine austauschbare `StringStrategy` (`unidecode`). In Java als `StringNormalizer` umgesetzt (deutsche Umlaute/ß → ae/oe/ue/ss, danach NFKD-Strip) und als opt-in `SpellCheckSettings.transliterate(true)` in Indexierung und Lookup verdrahtet. Standard: aus (kein Verhaltenswechsel).
+- Test `StringNormalizerTest` (4 Fälle, inkl. Lookup mit „Grüße“/„gruesse“).
+
+Nicht übernommen (bereits äquivalent oder ungeeignet):
+- `has_different_suffix` / `delete_in_suggestion_prefix`: identisch zu unserer Pruning-Logik (inkl. `||`).
+- `lookup_compound`-Fallback `10 / 10^len`: unsere Bigram-/Count-Heuristik ist bereits feiner; Änderung würde Ranking-Tests brechen.
+- `serde`-Serialisierung: nur Binary-Snapshot, kein Hot-Path-Gewinn.
+- WASM-Bindings: für Java irrelevant.
+- `parse_words` via `split_whitespace`: unsere Regex-Variante deckt mehr Trennzeichen ab.

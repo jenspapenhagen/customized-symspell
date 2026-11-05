@@ -90,13 +90,19 @@ public class SpellCheckSettings {
 
     private String keySplitRegex = "\\s+";
 
+    /**
+     * True if terms are folded to ASCII when indexed and looked up (for example German umlauts).
+     */
+    private boolean transliterate = false;
+
     private SpellCheckSettings(final Verbosity verbosityValue, final int topKValue, final float deletionWeightValue,
             final float insertionWeightValue, final float replaceWeightValue, final float transpositionWeightValue,
             final boolean lowerCaseTermsValue, final double maxEditDistanceValue,
             final int prefixLengthValue, final long countThresholdValue,
             final int maxLengthValue, final double bigramCountMinValue,
             final boolean ignoreUnknownValue, final double editFactorValue,
-            final boolean doKeySplitValue, final String keySplitRegexValue) {
+            final boolean doKeySplitValue, final String keySplitRegexValue,
+            final boolean transliterateValue) {
         this.verbosity = verbosityValue;
         this.topK = topKValue;
         this.deletionWeight = deletionWeightValue;
@@ -113,6 +119,7 @@ public class SpellCheckSettings {
         this.editFactor = editFactorValue;
         this.doKeySplit = doKeySplitValue;
         this.keySplitRegex = keySplitRegexValue;
+        this.transliterate = transliterateValue;
     }
 
     /**
@@ -248,6 +255,15 @@ public class SpellCheckSettings {
         return keySplitRegex;
     }
 
+    /**
+     * Returns whether terms are folded to ASCII before indexing and lookup.
+     *
+     * @return true if transliteration is enabled
+     */
+    public boolean isTransliterate() {
+        return transliterate;
+    }
+
     @Override
     public String toString() {
         return "SpellCheckSettings(verbosity=" + verbosity
@@ -265,7 +281,8 @@ public class SpellCheckSettings {
                 + ", ignoreUnknown=" + ignoreUnknown
                 + ", editFactor=" + editFactor
                 + ", doKeySplit=" + doKeySplit
-                + ", keySplitRegex=" + keySplitRegex + ")";
+                + ", keySplitRegex=" + keySplitRegex
+                + ", transliterate=" + transliterate + ")";
     }
 
     /**
@@ -290,6 +307,7 @@ public class SpellCheckSettings {
         private double editFactor = MAGIC_0_3;
         private boolean doKeySplit = true;
         private String keySplitRegex = "\\s+";
+        private boolean transliterate = false;
 
         /**
          * @param verbosity the verbosity used for lookups
@@ -436,13 +454,24 @@ public class SpellCheckSettings {
         }
 
         /**
+         * Enables or disables folding of terms to ASCII.
+         *
+         * @param transliterateValue true to fold umlauts and other diacritics to ASCII
+         * @return this builder
+         */
+        public SpellCheckSettingsBuilder transliterate(final boolean transliterateValue) {
+            this.transliterate = transliterateValue;
+            return this;
+        }
+
+        /**
          * @return the immutable-by-convention settings
          */
         public SpellCheckSettings build() {
             return new SpellCheckSettings(verbosity, topK, deletionWeight, insertionWeight,
                     replaceWeight, transpositionWeight, lowerCaseTerms, maxEditDistance, prefixLength,
                     countThreshold, maxLength, bigramCountMin, ignoreUnknown, editFactor, doKeySplit,
-                    keySplitRegex);
+                    keySplitRegex, transliterate);
         }
     }
 }

@@ -7,6 +7,7 @@ import io.github.mightguy.spellcheck.symspell.api.StringDistance;
 import io.github.mightguy.spellcheck.symspell.common.Composition;
 import io.github.mightguy.spellcheck.symspell.common.SpellCheckSettings;
 import io.github.mightguy.spellcheck.symspell.common.SpellHelper;
+import io.github.mightguy.spellcheck.symspell.common.StringNormalizer;
 import io.github.mightguy.spellcheck.symspell.common.SuggestionItem;
 import io.github.mightguy.spellcheck.symspell.common.Verbosity;
 import io.github.mightguy.spellcheck.symspell.exception.SpellCheckException;
@@ -78,6 +79,9 @@ public class SymSpellCheck extends SpellChecker {
             throws SpellCheckException {
 
         String phrase = thePhrase;
+        if (spellCheckSettings.isTransliterate()) {
+            phrase = StringNormalizer.toAscii(phrase);
+        }
 
         if (maxEditDistance > spellCheckSettings.getMaxEditDistance()) {
             throw new SpellCheckException(SpellCheckExceptionCode.LOOKUP_ERROR,
@@ -301,6 +305,9 @@ public class SymSpellCheck extends SpellChecker {
             throws SpellCheckException {
 
         String phrase = thePhrase;
+        if (spellCheckSettings.isTransliterate()) {
+            phrase = StringNormalizer.toAscii(phrase);
+        }
         double maxEditDistance = theMaxEditDistance;
 
         if (maxEditDistance <= 0) {
@@ -661,6 +668,9 @@ public class SymSpellCheck extends SpellChecker {
             final double maxEditDistance) throws SpellCheckException {
 
         String phrase = thePhrase;
+        if (spellCheckSettings.isTransliterate()) {
+            phrase = StringNormalizer.toAscii(phrase);
+        }
 
         /*
         number of all words in the corpus used to generate the

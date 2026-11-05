@@ -5,6 +5,7 @@ import io.github.mightguy.spellcheck.symspell.api.HashFunction;
 import io.github.mightguy.spellcheck.symspell.common.DictionaryItem;
 import io.github.mightguy.spellcheck.symspell.common.SpellCheckSettings;
 import io.github.mightguy.spellcheck.symspell.common.SpellHelper;
+import io.github.mightguy.spellcheck.symspell.common.StringNormalizer;
 import io.github.mightguy.spellcheck.symspell.common.Utf16HashFunction;
 import io.github.mightguy.spellcheck.symspell.exception.SpellCheckException;
 import java.util.Arrays;
@@ -65,6 +66,9 @@ public class InMemoryDataHolder implements DataHolder {
 
         double frequency = dictionaryItem.frequency();
         String key = dictionaryItem.term();
+        if (spellCheckSettings.isTransliterate()) {
+            key = StringNormalizer.toAscii(key);
+        }
         if (spellCheckSettings.isLowerCaseTerms()) {
             key = key.toLowerCase();
         }
