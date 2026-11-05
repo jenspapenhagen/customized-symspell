@@ -476,3 +476,49 @@ Produkt (Satz-Rechtschreibprüfung), nicht in dieser Lookup-Bibliothek.
 Günstigere Variante mit vorhandenen Daten: die bereits geladene Bigramm-Frequenz
 für das Reranking von Komposita-Splits nutzen (`haus boot` vs. Alternativen) –
 nicht für Homophone. **Nicht umgesetzt.**
+
+## Viterbi-Komposita-Segmentierung (2026-11-05)
+
+Opt-in über `SpellCheckSettings.builder().viterbiSegmentation(true)` (Default `false`), wirkt nur
+im `lookupCompound`-Pfad.
+
+### Problem
+Die bisherige Heuristik probiert genau eine Schnittstelle (`lookupSplitWords`) und kombiniert die
+besten Treffer der beiden Hälften. Dadurch können Zeichen verschwinden:
+`krankenhausapotheke` → `kranken apotheke`, `sonnenblumenöl` → `sonnen blumen`,
+`benutzeroberfläche` → `benutzer fläche`, `haustürschlüssel` → `haust schlüssel`.
+
+### Umsetzung
+- `SymSpellCheck.lookupViterbiSegmentation`: Dynamic Program über alle Positionen
+  (`costs[]` + `previousBoundaries[]`), Segmentlängen 2..48, Wortlänge ≤ 48.
+- Kosten pro Segment: `ln(maxFrequency / frequency)` plus `6.0` pro zusätzlicher Grenze.
+  `maxFrequency` liefert `DataHolder.getMaxFrequency()` (neue Default-Methode, von
+  `InMemoryDataHolder` beim Einfügen gepflegt).
+- Das DP deckt per Konstruktion die komplette Eingabe ab, weil nur ganze Segmente verkettet werden.
+- `lookupCompoundSegmentation` vergleicht das Ergebnis mit der alten Heuristik:
+  - Kostet die Segmentierung nur die eingefügten Leerzeichen (`distance <= parts - 1`), gewinnt sie
+    direkt — kein zweiter Lauf.
+  - Andernfalls (das exakte DP kann einen falsch geschriebenen Teil nicht reparieren) läuft die
+    alte Heuristik zusätzlich, und die geringere Distanz zum Eingabewort gewinnt.
+- `noSubMatches` bleibt unverändert wirksam (betrifft nur die alte Heuristik).
+
+### Ergebnisse (de-100k, `lookupCompound(word, 2, false)`)
+| Eingabe | vorher | mit Viterbi |
+|---|---|---|
+| `krankenhausapotheke` | `kranken apotheke` | `kranken haus apotheke` |
+| `sonnenblumenöl` | `sonnen blumen` | `sonnen blumen öl` |
+| `benutzeroberfläche` | `benutzer fläche` | `benutzer ober fläche` |
+| `haustürschlüssel` | `haust schlüssel` | `haus tür schlüssel` |
+| `hausboot` | `haus boot` | `haus boot` |
+
+Laufzeit 0,15–1,4 ms pro Aufruf (Dictionary-Lookups dominieren, nicht das DP).
+
+### Nebenfund: Überlauf im bit-parallelen OSA
+`bitParallelOsa` prüfte `distance > maxDistance + (textLength - 1 - j)`. Mit
+`maxDistance = Integer.MAX_VALUE` (so ruft `lookupCompound` die finale Distanz auf) lief der
+Ausdruck über und die Funktion gab sofort `-1` zurück — **jede** Compound-Distanz war dadurch
+`-1`. Jetzt wird in `long` verglichen; Regressionstest in `Issue70RegressionTest.largeBudgetIsNotRejected`.
+
+### Tests
+`ViterbiSegmentationTest` (5 Tests): Setting-Roundtrip, vollständige Segmentierung, Erhalt
+mittlerer Teile, Legacy-Verhalten bei deaktiviertem Flag, Fallback bei unbekanntem Wort.

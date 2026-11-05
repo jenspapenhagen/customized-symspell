@@ -61,6 +61,16 @@ public interface DataHolder {
     }
 
     /**
+     * Returns the largest unigram frequency known to this holder. Compound segmentation uses it to
+     * normalise unigram costs.
+     *
+     * @return the largest frequency, or {@code 0.0} if the holder does not track one
+     */
+    public default double getMaxFrequency() {
+        return 0.0;
+    }
+
+    /**
      * Returns the term stored for the given id.
      *
      * @param id the term id

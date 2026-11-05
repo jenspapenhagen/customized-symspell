@@ -252,8 +252,9 @@ public class WeightedDamerauLevenshteinDistance implements StringDistance {
             distance += (hp & lastBit) != 0 ? 1 : 0;
             distance -= (hn & lastBit) != 0 ? 1 : 0;
 
-            // Early exit: distance can drop by at most 1 per remaining column.
-            if (distance > maxDistance + (textLength - 1 - j)) {
+            // Early exit: distance can drop by at most 1 per remaining column. The comparison is
+            // done in long arithmetic, because callers may pass Integer.MAX_VALUE as budget.
+            if ((long) distance - maxDistance > (long) (textLength - 1 - j)) {
                 return -1;
             }
 

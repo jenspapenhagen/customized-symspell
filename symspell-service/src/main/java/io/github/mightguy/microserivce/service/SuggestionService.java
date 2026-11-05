@@ -30,7 +30,7 @@ import org.springframework.stereotype.Service;
  * @since 6.7
  */
 @Service
-public class SuggestionService {
+public final class SuggestionService {
 
     private static final String DICTIONARY_RESOURCE = "de-100k.txt";
     private static final int MAGIC_2 = 2;

@@ -148,4 +148,18 @@ public class Issue70RegressionTest {
         Assert.assertEquals("players", suggestions.get(0).getTerm());
         Assert.assertEquals(1.0, suggestions.get(0).getDistance(), EPSILON);
     }
+
+    /**
+     * A budget of {@code Integer.MAX_VALUE} must not overflow the branch-and-bound check in the
+     * bit-parallel kernel; compound lookups use that budget for their final distance.
+     */
+    @Test
+    public void largeBudgetIsNotRejected() {
+        WeightedDamerauLevenshteinDistance distance =
+                new WeightedDamerauLevenshteinDistance(1, 1, 1, 1, null);
+
+        Assert.assertEquals(1.0, distance.getDistance("haus boot", "hausboot",
+                Math.pow(2, 31) - 1), EPSILON);
+        Assert.assertEquals(1.0, distance.getDistance("haus boot", "hausboot"), EPSILON);
+    }
 }

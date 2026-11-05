@@ -101,6 +101,13 @@ public class SpellCheckSettings {
      */
     private boolean noSubMatches = false;
 
+    /**
+     * When enabled, {@code lookupCompound} segments a joined word with a Viterbi style dynamic
+     * program over dictionary frequencies instead of trying a single split position. The
+     * segmentation always covers the complete input, so no character is silently dropped.
+     */
+    private boolean viterbiSegmentation = false;
+
     private SpellCheckSettings(final Verbosity verbosityValue, final int topKValue, final float deletionWeightValue,
             final float insertionWeightValue, final float replaceWeightValue, final float transpositionWeightValue,
             final boolean lowerCaseTermsValue, final double maxEditDistanceValue,
@@ -108,7 +115,8 @@ public class SpellCheckSettings {
             final int maxLengthValue, final double bigramCountMinValue,
             final boolean ignoreUnknownValue, final double editFactorValue,
             final boolean doKeySplitValue, final String keySplitRegexValue,
-            final boolean transliterateValue, final boolean noSubMatchesValue) {
+            final boolean transliterateValue, final boolean noSubMatchesValue,
+            final boolean viterbiSegmentationValue) {
         this.verbosity = verbosityValue;
         this.topK = topKValue;
         this.deletionWeight = deletionWeightValue;
@@ -127,6 +135,7 @@ public class SpellCheckSettings {
         this.keySplitRegex = keySplitRegexValue;
         this.transliterate = transliterateValue;
         this.noSubMatches = noSubMatchesValue;
+        this.viterbiSegmentation = viterbiSegmentationValue;
     }
 
     /**
@@ -285,6 +294,20 @@ public class SpellCheckSettings {
         this.noSubMatches = noSubMatchesValue;
     }
 
+    /**
+     * @return true if compound segmentation uses the Viterbi dynamic program
+     */
+    public boolean isViterbiSegmentation() {
+        return viterbiSegmentation;
+    }
+
+    /**
+     * @param viterbiSegmentationValue true to segment joined words with the Viterbi dynamic program
+     */
+    public void setViterbiSegmentation(final boolean viterbiSegmentationValue) {
+        this.viterbiSegmentation = viterbiSegmentationValue;
+    }
+
     @Override
     public String toString() {
         return "SpellCheckSettings(verbosity=" + verbosity
@@ -304,7 +327,8 @@ public class SpellCheckSettings {
                 + ", doKeySplit=" + doKeySplit
                 + ", keySplitRegex=" + keySplitRegex
                 + ", transliterate=" + transliterate
-                + ", noSubMatches=" + noSubMatches + ")";
+                + ", noSubMatches=" + noSubMatches
+                + ", viterbiSegmentation=" + viterbiSegmentation + ")";
     }
 
     /**
@@ -332,6 +356,8 @@ public class SpellCheckSettings {
         private boolean transliterate = false;
 
         private boolean noSubMatches = false;
+
+        private boolean viterbiSegmentation = false;
 
         /**
          * @param verbosity the verbosity used for lookups
@@ -498,13 +524,24 @@ public class SpellCheckSettings {
         }
 
         /**
+         * Enables Viterbi style compound segmentation over dictionary frequencies.
+         *
+         * @param viterbiSegmentationValue true to segment joined words with the dynamic program
+         * @return this builder
+         */
+        public SpellCheckSettingsBuilder viterbiSegmentation(final boolean viterbiSegmentationValue) {
+            this.viterbiSegmentation = viterbiSegmentationValue;
+            return this;
+        }
+
+        /**
          * @return the immutable-by-convention settings
          */
         public SpellCheckSettings build() {
             return new SpellCheckSettings(verbosity, topK, deletionWeight, insertionWeight,
                     replaceWeight, transpositionWeight, lowerCaseTerms, maxEditDistance, prefixLength,
                     countThreshold, maxLength, bigramCountMin, ignoreUnknown, editFactor, doKeySplit,
-                    keySplitRegex, transliterate, noSubMatches);
+                    keySplitRegex, transliterate, noSubMatches, viterbiSegmentation);
         }
     }
 }

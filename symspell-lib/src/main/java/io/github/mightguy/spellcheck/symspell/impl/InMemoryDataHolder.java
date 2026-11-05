@@ -31,6 +31,7 @@ public class InMemoryDataHolder implements DataHolder {
     private String[] terms = new String[MAGIC_1024];
     private double[] frequencies = new double[MAGIC_1024];
     private int termCount;
+    private double maxFrequency;
 
     private Map<String, Double> bigramsDictionary = new HashMap<>();
     private Map<String, String> exclusionDictionary = new HashMap<>();
@@ -139,13 +140,30 @@ public class InMemoryDataHolder implements DataHolder {
                 }
                 terms[termCount] = key;
                 frequencies[termCount] = frequency;
+                if (frequency > maxFrequency) {
+                    maxFrequency = frequency;
+                }
                 termIndex.put(key, termCount);
                 termCount++;
             } else {
                 frequencies[id] = frequency;
+                if (frequency > maxFrequency) {
+                    maxFrequency = frequency;
+                }
             }
             return true;
         }
+    }
+
+    /**
+     * Returns the largest frequency seen so far. Used by compound segmentation to normalise
+     * unigram costs.
+     *
+     * @return the largest stored frequency, or {@code 0} when the dictionary is empty
+     */
+    @Override
+    public double getMaxFrequency() {
+        return maxFrequency;
     }
 
     @Override
@@ -250,6 +268,7 @@ public class InMemoryDataHolder implements DataHolder {
         terms = new String[MAGIC_1024];
         frequencies = new double[MAGIC_1024];
         termCount = 0;
+        maxFrequency = 0;
         deleteIndex.clear();
         deleteBuckets = new int[MAGIC_1024][];
         deleteBucketCount = 0;

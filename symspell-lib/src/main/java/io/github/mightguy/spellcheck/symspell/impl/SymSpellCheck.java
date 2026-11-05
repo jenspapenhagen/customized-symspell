@@ -34,6 +34,10 @@ public class SymSpellCheck extends SpellChecker {
     private static final int MAGIC_32 = 32;
     private static final double MAGIC_0_01 = 0.01;
     private static final double MAGIC_10_0 = 10.0;
+    private static final int MAGIC_2 = 2;
+    private static final int MAGIC_48 = 48;
+    private static final double MAGIC_6_0 = 6.0;
+    private static final double MAGIC_1_0 = 1.0;
 
 
     //N equals the sum of all counts c in the dictionary only if the dictionary is complete,
@@ -133,6 +137,8 @@ public class SymSpellCheck extends SpellChecker {
                     || items[i].length() == 1)) {
                 //choose best suggestion
                 suggestionParts.add(suggestions.get(0));
+            } else if (spellCheckSettings.isViterbiSegmentation()) {
+                lookupCompoundSegmentation(suggestionParts, suggestions, items[i], maxEditDistance);
             } else {
                 lookupSplitWords(suggestionParts, suggestions, items[i], maxEditDistance);
             }
@@ -194,6 +200,133 @@ public class SymSpellCheck extends SpellChecker {
         return false;
     }
 
+
+    /**
+     * Chooses between the Viterbi segmentation and the legacy single split heuristic. A
+     * segmentation that only inserts the boundaries covers every input character and is preferred
+     * directly; otherwise both candidates are compared by their distance to the input, because the
+     * exact-only dynamic program cannot repair a misspelled part while the legacy heuristic can.
+     *
+     * @param suggestionParts receives the winning segmentation
+     * @param suggestions the suggestions for the complete word, may be {@code null}
+     * @param word the joined word to segment
+     * @param maxEditDistance the maximum edit distance
+     * @throws SpellCheckException if a lookup fails
+     */
+    private void lookupCompoundSegmentation(final List<SuggestionItem> suggestionParts,
+            final List<SuggestionItem> suggestions, final String word, final double maxEditDistance)
+            throws SpellCheckException {
+        final List<SuggestionItem> viterbiParts = new ArrayList<>();
+        if (!lookupViterbiSegmentation(viterbiParts, word)) {
+            lookupSplitWords(suggestionParts, suggestions, word, maxEditDistance);
+            return;
+        }
+        final double viterbiDistance = stringDistance.getDistance(joinTerms(viterbiParts), word);
+        if (viterbiDistance <= viterbiParts.size() - 1) {
+            suggestionParts.addAll(viterbiParts);
+            return;
+        }
+        final List<SuggestionItem> splitParts = new ArrayList<>();
+        lookupSplitWords(splitParts, suggestions, word, maxEditDistance);
+        if (splitParts.isEmpty()) {
+            suggestionParts.addAll(viterbiParts);
+            return;
+        }
+        final double splitDistance = stringDistance.getDistance(joinTerms(splitParts), word);
+        if (splitDistance >= 0 && splitDistance < viterbiDistance) {
+            suggestionParts.addAll(splitParts);
+        } else {
+            suggestionParts.addAll(viterbiParts);
+        }
+    }
+
+    /**
+     * Joins suggestion terms with single spaces.
+     *
+     * @param parts the suggestions to join, must not be {@code null}
+     * @return the joined term
+     */
+    private static String joinTerms(final List<SuggestionItem> parts) {
+        final StringBuilder builder = new StringBuilder();
+        for (SuggestionItem part : parts) {
+            if (builder.length() > 0) {
+                builder.append(' ');
+            }
+            builder.append(part.getTerm());
+        }
+        return builder.toString();
+    }
+
+    /**
+     * Segments a joined word into dictionary terms with a Viterbi style dynamic program. Every
+     * split covers the complete input, so no character is silently dropped as in the single split
+     * heuristic. Unigram costs are normalised against the largest frequency in the dictionary and
+     * every boundary adds a fixed penalty, which keeps long compounds together when they are known
+     * and pushes towards few, frequent parts otherwise.
+     *
+     * @param suggestionParts receives one suggestion per segment when a full segmentation exists
+     * @param word the joined word to segment
+     * @return {@code true} if the word was fully segmented, {@code false} if the caller should fall
+     *         back to the single split heuristic
+     * @throws SpellCheckException if a frequency lookup fails
+     */
+    private boolean lookupViterbiSegmentation(final List<SuggestionItem> suggestionParts, final String word)
+            throws SpellCheckException {
+        final int wordLength = word.length();
+        if (wordLength < MAGIC_2 * MAGIC_2 || wordLength > MAGIC_48) {
+            return false;
+        }
+        final double maxFrequency = Math.max(dataHolder.getMaxFrequency(), MAGIC_1_0);
+        final double[] costs = new double[wordLength + 1];
+        final int[] previousBoundaries = new int[wordLength + 1];
+        Arrays.fill(costs, Double.POSITIVE_INFINITY);
+        Arrays.fill(previousBoundaries, -1);
+        costs[0] = 0;
+
+        for (int start = 0; start < wordLength; start++) {
+            if (Double.isInfinite(costs[start])) {
+                continue;
+            }
+            final int maxEnd = Math.min(wordLength, start + MAGIC_48);
+            for (int end = start + MAGIC_2; end <= maxEnd; end++) {
+                final Double frequency = dataHolder.getItemFrequency(word.substring(start, end));
+                if (frequency == null || frequency <= 0) {
+                    continue;
+                }
+                final double boundaryPenalty = start == 0 ? 0 : MAGIC_6_0;
+                final double candidateCost = costs[start]
+                        + Math.log(maxFrequency / frequency) + boundaryPenalty;
+                if (candidateCost < costs[end]) {
+                    costs[end] = candidateCost;
+                    previousBoundaries[end] = start;
+                }
+            }
+        }
+
+        if (Double.isInfinite(costs[wordLength])) {
+            return false;
+        }
+
+        final List<String> segments = new ArrayList<>();
+        int position = wordLength;
+        while (position > 0) {
+            final int start = previousBoundaries[position];
+            if (start < 0) {
+                return false;
+            }
+            segments.add(word.substring(start, position));
+            position = start;
+        }
+        if (segments.size() < MAGIC_2) {
+            return false;
+        }
+        Collections.reverse(segments);
+        for (String segment : segments) {
+            final Double frequency = dataHolder.getItemFrequency(segment);
+            suggestionParts.add(new SuggestionItem(segment, 0, frequency == null ? 0 : frequency));
+        }
+        return true;
+    }
 
     /**
      * supports compound aware automatic spelling correction of multi-word input strings with.
