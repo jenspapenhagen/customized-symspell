@@ -60,7 +60,7 @@
     <sonar-maven-plugin.version>5.8.0.7211</sonar-maven-plugin.version>
 
     <hamcrest.version>2.2</hamcrest.version>
-    <jmh.version>1.19</jmh.version>
+    <jmh.version>1.37</jmh.version>
     <junit.version>4.12</junit.version>
     <solr.version>10.1.0</solr.version>
     <springdoc.version>3.2.0</springdoc.version>
