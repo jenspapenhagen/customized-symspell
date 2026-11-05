@@ -9,8 +9,8 @@ import java.util.Arrays;
  * and does not pay for {@link java.util.HashMap} nodes.
  */
 final class LongIntMap {
-    private static final int MAGIC_16 = 16;
-    private static final int MAGIC_32 = 32;
+    private static final int DEFAULT_CAPACITY = 16;
+    private static final int KEY_SHIFT = 32;
 
 
     private static final long GOLDEN_RATIO = 0x9E3779B97F4A7C15L;
@@ -27,7 +27,7 @@ final class LongIntMap {
     private int mask;
 
     LongIntMap() {
-        allocate(MAGIC_16);
+        allocate(DEFAULT_CAPACITY);
     }
 
     /**
@@ -95,7 +95,7 @@ final class LongIntMap {
     }
 
     private int slotOf(final long storedKey) {
-        return ((int) (storedKey >>> MAGIC_32) ^ (int) storedKey) & mask;
+        return ((int) (storedKey >>> KEY_SHIFT) ^ (int) storedKey) & mask;
     }
 
     private void resize(final int capacity) {

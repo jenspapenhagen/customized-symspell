@@ -13,7 +13,7 @@ import java.util.Set;
  * @since 6.7
  */
 public final class SpellHelper {
-    private static final int MAGIC_64 = 64;
+    private static final int DELETE_BUFFER_INITIAL_CAPACITY = 64;
 
 
     /**
@@ -21,7 +21,7 @@ public final class SpellHelper {
      * {@link String} right away, so a single buffer per thread is enough even while recursing.
      */
     private static final ThreadLocal<char[]> DELETE_BUFFER = ThreadLocal.withInitial(
-            () -> new char[MAGIC_64]);
+            () -> new char[DELETE_BUFFER_INITIAL_CAPACITY]);
 
     private SpellHelper() {
     }

@@ -23,17 +23,16 @@ import java.util.Objects;
  * lines are skipped silently.
  */
 public final class DictionaryReader {
-    private static final int MAGIC_7 = 7;
-    private static final int MAGIC_0X09 = 0x09;
-    private static final int MAGIC_3 = 3;
-    private static final int MAGIC_0X30 = 0x30;
-    private static final int MAGIC_0XFF = 0xFF;
-    private static final int MAGIC_10 = 10;
-    private static final int MAGIC_0X0F = 0x0F;
-    private static final int MAGIC_0Xff = 0xff;
-    private static final int MAGIC_8 = 8;
-    private static final long MAGIC_0X0101010101010101 = 0x0101010101010101L;
-    private static final long MAGIC_0X8080808080808080 = 0x8080808080808080L;
+    private static final int LONG_ALIGNMENT_MASK = 7;
+    private static final int TAB_BYTE = 0x09;
+    private static final int LONG_SIZE_BITS = 3;
+    private static final int ASCII_ZERO = 0x30;
+    private static final int BYTE_MASK = 0xFF;
+    private static final int DECIMAL_BASE = 10;
+    private static final int DIGIT_MASK = 0x0F;
+    private static final int LONG_BYTES = 8;
+    private static final long LOW_BITS_ONE = 0x0101010101010101L;
+    private static final long HIGH_BITS = 0x8080808080808080L;
 
 
     private static final int BUFFER_SIZE = 64 * 1024;
@@ -116,21 +115,21 @@ public final class DictionaryReader {
         final long ONE_MASK = 0x0101010101010101L;
         final long HIGH_MASK = 0x8080808080808080L;
         final int regionLen = end - start;
-        final int tailBytes = regionLen & MAGIC_7;
+        final int tailBytes = regionLen & LONG_ALIGNMENT_MASK;
         int idx = end - 1;
         // 1) unaligned tail (at most 7 bytes) byte-by-byte, right-to-left
         for (int t = 0; t < tailBytes && idx >= start; t++, idx--) {
             final byte b = source.get(ValueLayout.JAVA_BYTE, idx);
-            if ((b ^ MAGIC_0X09) == 0 || b == ';') {
+            if ((b ^ TAB_BYTE) == 0 || b == ';') {
                 sep = idx;
                 break;
             }
         }
         // 2) full 8-byte chunks, right-to-left
         if (sep < 0) {
-            final int numFullChunks = regionLen >>> MAGIC_3;
+            final int numFullChunks = regionLen >>> LONG_SIZE_BITS;
             for (int c = numFullChunks - 1; c >= 0; c--) {
-                final int chunkStart = start + (c << MAGIC_3);
+                final int chunkStart = start + (c << LONG_SIZE_BITS);
                 final long word = source.get(ValueLayout.JAVA_LONG_UNALIGNED, chunkStart);
                 final long tabXor = word ^ TAB_MASK;
                 final long semiXor = word ^ SEMI_MASK;
@@ -140,7 +139,7 @@ public final class DictionaryReader {
                 if (matches != 0) {
                     // leading zeros -> highest-index byte in the chunk (rightmost match)
                     final int bitPos = 63 - Long.numberOfLeadingZeros(matches);
-                    sep = chunkStart + (bitPos >>> MAGIC_3);
+                    sep = chunkStart + (bitPos >>> LONG_SIZE_BITS);
                     break;
                 }
             }
@@ -205,20 +204,20 @@ public final class DictionaryReader {
             for (int j = i; j < freqEnd; j++) {
                 final byte db = source.get(ValueLayout.JAVA_BYTE, j);
                 // bitwise digit detection: (db ^ 0x30) < 10  <=>  '0' <= db <= '9'
-                if (((db ^ MAGIC_0X30) & MAGIC_0XFF) >= MAGIC_10) {
+                if (((db ^ ASCII_ZERO) & BYTE_MASK) >= DECIMAL_BASE) {
                     allDigits = false;
                     break;
                 }
-                final int digit = db & MAGIC_0X0F;
+                final int digit = db & DIGIT_MASK;
                 // multiply by 10 via bit shifts: val*10 = (val<<3) + (val<<1)
-                val = (val << MAGIC_3) + (val << 1) + digit;
+                val = (val << LONG_SIZE_BITS) + (val << 1) + digit;
             }
             if (allDigits) {
                 frequency = negative ? -val : val;
             } else {
                 final StringBuilder sb = new StringBuilder(freqEnd - freqStart);
                 for (int j = freqStart; j < freqEnd; j++) {
-                    sb.append((char) (source.get(ValueLayout.JAVA_BYTE, j) & MAGIC_0Xff));
+                    sb.append((char) (source.get(ValueLayout.JAVA_BYTE, j) & BYTE_MASK));
                 }
                 frequency = Double.parseDouble(sb.toString());
             }
@@ -237,16 +236,16 @@ public final class DictionaryReader {
     private static long findEither(final MemorySegment source, final int startIn, final int end, final byte first,
             final byte second) {
         int start = startIn;
-        while (start <= end - MAGIC_8) {
+        while (start <= end - LONG_BYTES) {
             final long word = source.get(ValueLayout.JAVA_LONG_UNALIGNED, start);
-            final long a = word ^ (first * MAGIC_0X0101010101010101);
-            final long b = word ^ (second * MAGIC_0X0101010101010101);
-            final long matches = ((a - MAGIC_0X0101010101010101) & ~a | (b - MAGIC_0X0101010101010101) & ~b)
-                    & MAGIC_0X8080808080808080;
+            final long a = word ^ (first * LOW_BITS_ONE);
+            final long b = word ^ (second * LOW_BITS_ONE);
+            final long matches = ((a - LOW_BITS_ONE) & ~a | (b - LOW_BITS_ONE) & ~b)
+                    & HIGH_BITS;
             if (matches != 0) {
-                return start + (Long.numberOfTrailingZeros(matches) >>> MAGIC_3);
+                return start + (Long.numberOfTrailingZeros(matches) >>> LONG_SIZE_BITS);
             }
-            start += MAGIC_8;
+            start += LONG_BYTES;
         }
         while (start < end) {
             final byte value = source.get(ValueLayout.JAVA_BYTE, start);

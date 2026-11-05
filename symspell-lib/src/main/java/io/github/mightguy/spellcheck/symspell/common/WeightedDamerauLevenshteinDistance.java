@@ -23,7 +23,7 @@ import java.util.Arrays;
  * @since 6.7
  */
 public class WeightedDamerauLevenshteinDistance implements StringDistance {
-    private static final int MAGIC_128 = 128;
+    private static final int ASCII_TABLE_SIZE = 128;
 
 
     /**
@@ -274,9 +274,9 @@ public class WeightedDamerauLevenshteinDistance implements StringDistance {
      */
     private static final class BitMasks {
 
-        private final long[] ascii = new long[MAGIC_128];
+        private final long[] ascii = new long[ASCII_TABLE_SIZE];
 
-        private final char[] touchedAscii = new char[MAGIC_128];
+        private final char[] touchedAscii = new char[ASCII_TABLE_SIZE];
 
         private final char[] otherCharacters = new char[MAX_BIT_PARALLEL_LENGTH];
 
@@ -298,7 +298,7 @@ public class WeightedDamerauLevenshteinDistance implements StringDistance {
 
         void add(final char character, final int bit) {
             final long mask = 1L << bit;
-            if (character < MAGIC_128) {
+            if (character < ASCII_TABLE_SIZE) {
                 if (ascii[character] == 0L) {
                     touchedAscii[touchedCount++] = character;
                 }
@@ -317,7 +317,7 @@ public class WeightedDamerauLevenshteinDistance implements StringDistance {
         }
 
         long mask(final char character) {
-            if (character < MAGIC_128) {
+            if (character < ASCII_TABLE_SIZE) {
                 return ascii[character];
             }
             for (int i = 0; i < otherCount; i++) {

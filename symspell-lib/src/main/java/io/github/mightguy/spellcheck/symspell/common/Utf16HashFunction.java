@@ -9,16 +9,16 @@ import io.github.mightguy.spellcheck.symspell.api.HashFunction;
  * @since 6.7
  */
 public class Utf16HashFunction implements HashFunction {
-    private static final long MAGIC_0X9E3779B185EBCA87 = 0x9E3779B185EBCA87L;
-    private static final long MAGIC_0Xffff = 0xffffL;
-    private static final int MAGIC_16 = 16;
-    private static final long MAGIC_0XC2B2AE3D27D4EB4F = 0xC2B2AE3D27D4EB4FL;
-    private static final int MAGIC_33 = 33;
-    private static final int MAGIC_27 = 27;
-    private static final int MAGIC_5 = 5;
-    private static final int MAGIC_0X52DCE729 = 0x52DCE729;
-    private static final long MAGIC_0XFF51AFD7ED558CCD = 0xFF51AFD7ED558CCDL;
-    private static final long MAGIC_0XC4CEB9FE1A85EC53 = 0xC4CEB9FE1A85EC53L;
+    private static final long GOLDEN_RATIO_MIX = 0x9E3779B185EBCA87L;
+    private static final long CHAR_MASK = 0xffffL;
+    private static final int CHAR_PAIR_SHIFT = 16;
+    private static final long PAIR_MIX_MULTIPLIER = 0xC2B2AE3D27D4EB4FL;
+    private static final int AVALANCHE_SHIFT = 33;
+    private static final int BLOCK_ROTATION = 27;
+    private static final int BLOCK_MULTIPLIER = 5;
+    private static final int BLOCK_INCREMENT = 0x52DCE729;
+    private static final long FINAL_MIX_MULTIPLIER = 0xFF51AFD7ED558CCDL;
+    private static final long FINAL_MIX_MULTIPLIER_SECOND = 0xC4CEB9FE1A85EC53L;
 
 
     /**
@@ -39,23 +39,23 @@ public class Utf16HashFunction implements HashFunction {
      */
     public long hash(final String data) {
         final int length = data.length();
-        long h = MAGIC_0X9E3779B185EBCA87 ^ length;
+        long h = GOLDEN_RATIO_MIX ^ length;
 
         int i = 0;
         for (; i + 1 < length; i += 2) {
-            long v = (data.charAt(i) & MAGIC_0Xffff)
-                    | ((data.charAt(i + 1) & MAGIC_0Xffff) << MAGIC_16);
+            long v = (data.charAt(i) & CHAR_MASK)
+                    | ((data.charAt(i + 1) & CHAR_MASK) << CHAR_PAIR_SHIFT);
 
-            v *= MAGIC_0XC2B2AE3D27D4EB4F;
-            v ^= v >>> MAGIC_33;
-            v *= MAGIC_0X9E3779B185EBCA87;
+            v *= PAIR_MIX_MULTIPLIER;
+            v ^= v >>> AVALANCHE_SHIFT;
+            v *= GOLDEN_RATIO_MIX;
 
             h ^= v;
-            h = Long.rotateLeft(h, MAGIC_27) * MAGIC_5 + MAGIC_0X52DCE729;
+            h = Long.rotateLeft(h, BLOCK_ROTATION) * BLOCK_MULTIPLIER + BLOCK_INCREMENT;
         }
 
         if (i < length) {
-            h ^= data.charAt(i) & MAGIC_0Xffff;
+            h ^= data.charAt(i) & CHAR_MASK;
         }
 
         return mix(h);
@@ -71,23 +71,23 @@ public class Utf16HashFunction implements HashFunction {
      * @return the hash value
      */
     public long hash(final char[] data, final int length) {
-        long h = MAGIC_0X9E3779B185EBCA87 ^ length;
+        long h = GOLDEN_RATIO_MIX ^ length;
 
         int i = 0;
         for (; i + 1 < length; i += 2) {
-            long v = (data[i] & MAGIC_0Xffff)
-                    | ((data[i + 1] & MAGIC_0Xffff) << MAGIC_16);
+            long v = (data[i] & CHAR_MASK)
+                    | ((data[i + 1] & CHAR_MASK) << CHAR_PAIR_SHIFT);
 
-            v *= MAGIC_0XC2B2AE3D27D4EB4F;
-            v ^= v >>> MAGIC_33;
-            v *= MAGIC_0X9E3779B185EBCA87;
+            v *= PAIR_MIX_MULTIPLIER;
+            v ^= v >>> AVALANCHE_SHIFT;
+            v *= GOLDEN_RATIO_MIX;
 
             h ^= v;
-            h = Long.rotateLeft(h, MAGIC_27) * MAGIC_5 + MAGIC_0X52DCE729;
+            h = Long.rotateLeft(h, BLOCK_ROTATION) * BLOCK_MULTIPLIER + BLOCK_INCREMENT;
         }
 
         if (i < length) {
-            h ^= data[i] & MAGIC_0Xffff;
+            h ^= data[i] & CHAR_MASK;
         }
 
         return mix(h);
@@ -95,11 +95,11 @@ public class Utf16HashFunction implements HashFunction {
 
     private static long mix(final long value) {
         long h = value;
-        h ^= h >>> MAGIC_33;
-        h *= MAGIC_0XFF51AFD7ED558CCD;
-        h ^= h >>> MAGIC_33;
-        h *= MAGIC_0XC4CEB9FE1A85EC53;
-        h ^= h >>> MAGIC_33;
+        h ^= h >>> AVALANCHE_SHIFT;
+        h *= FINAL_MIX_MULTIPLIER;
+        h ^= h >>> AVALANCHE_SHIFT;
+        h *= FINAL_MIX_MULTIPLIER_SECOND;
+        h ^= h >>> AVALANCHE_SHIFT;
         return h;
     }
 }

@@ -10,9 +10,9 @@ import io.github.mightguy.spellcheck.symspell.api.SpellChecker;
  * @since 6.7
  */
 public class SpellCheckSettings {
-    private static final int MAGIC_10 = 10;
-    private static final int MAGIC_7 = 7;
-    private static final double MAGIC_0_3 = 0.3;
+    private static final int DEFAULT_TOP_K = 10;
+    private static final int DEFAULT_PREFIX_LENGTH = 7;
+    private static final double DEFAULT_EDIT_FACTOR = 0.3;
 
 
 
@@ -24,7 +24,7 @@ public class SpellCheckSettings {
     /**
      * limit suggestion list to topK entries.
      */
-    private int topK = MAGIC_10; // limits result to n entries
+    private int topK = DEFAULT_TOP_K; // limits result to n entries
 
 
     /**
@@ -61,7 +61,7 @@ public class SpellCheckSettings {
     /**
      * The length of word prefixes used for spell checking. (default 7)
      */
-    private int prefixLength = MAGIC_7;
+    private int prefixLength = DEFAULT_PREFIX_LENGTH;
 
     /**
      * The minimum frequency count for dictionary words to be considered correct spellings. (default
@@ -84,7 +84,7 @@ public class SpellCheckSettings {
     /**
      * Edit Factor to compute max edit distance possible for a word.
      */
-    private double editFactor = MAGIC_0_3;
+    private double editFactor = DEFAULT_EDIT_FACTOR;
 
     private boolean doKeySplit = true;
 
@@ -338,19 +338,19 @@ public class SpellCheckSettings {
     public static final class SpellCheckSettingsBuilder {
 
         private Verbosity verbosity = Verbosity.ALL;
-        private int topK = MAGIC_10;
+        private int topK = DEFAULT_TOP_K;
         private float deletionWeight = 1.0f;
         private float insertionWeight = 1.0f;
         private float replaceWeight = 1.0f;
         private float transpositionWeight = 1.0f;
         private boolean lowerCaseTerms = true;
         private double maxEditDistance = 2;
-        private int prefixLength = MAGIC_7;
+        private int prefixLength = DEFAULT_PREFIX_LENGTH;
         private long countThreshold = 1;
         private int maxLength = Integer.MAX_VALUE;
         private double bigramCountMin = Double.MAX_VALUE;
         private boolean ignoreUnknown = true;
-        private double editFactor = MAGIC_0_3;
+        private double editFactor = DEFAULT_EDIT_FACTOR;
         private boolean doKeySplit = true;
         private String keySplitRegex = "\\s+";
         private boolean transliterate = false;

@@ -1,9 +1,9 @@
 package io.github.mightguy.spellcheck.symspell.impl;
 
 final class StringIntMap {
-    private static final double MAGIC_0_6 = 0.6;
-    private static final int MAGIC_0X9E3779B1 = 0x9E3779B1;
-    private static final int MAGIC_16 = 16;
+    private static final double LOAD_FACTOR = 0.6;
+    private static final int HASH_MULTIPLIER = 0x9E3779B1;
+    private static final int HASH_MIX_SHIFT = 16;
 
 
     private static final int INITIAL_CAPACITY = 1024;
@@ -24,12 +24,12 @@ final class StringIntMap {
         values = new int[capacity];
         hashes = new int[capacity];
         mask = capacity - 1;
-        threshold = (int) (capacity * MAGIC_0_6);
+        threshold = (int) (capacity * LOAD_FACTOR);
         size = 0;
     }
 
     private static int mix(final int hash) {
-        return hash * MAGIC_0X9E3779B1 ^ (hash >>> MAGIC_16);
+        return hash * HASH_MULTIPLIER ^ (hash >>> HASH_MIX_SHIFT);
     }
 
     int get(final String key) {

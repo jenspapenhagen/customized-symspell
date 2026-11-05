@@ -13,6 +13,7 @@ const dictionaryLabel = byId('dictionary');
 
 const SUGGESTION_LIMIT = 12;
 const DEBOUNCE_MS = 140;
+const MIN_QUERY_LENGTH = 4;
 const number = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 });
 const distanceFormat = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
 
@@ -59,11 +60,19 @@ function invalidate() {
   return generation;
 }
 
+function isSearchable(value) {
+  return value.length >= MIN_QUERY_LENGTH;
+}
+
 function schedule() {
   const version = invalidate();
   const value = query.value.trim();
   if (!value) {
     setStatus('Bereit.');
+    return;
+  }
+  if (!isSearchable(value)) {
+    setStatus(`Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben.`);
     return;
   }
   setStatus('Suche läuft …');
@@ -198,8 +207,11 @@ form.addEventListener('submit', (event) => {
     return;
   }
   const version = invalidate();
-  if (query.value.trim()) {
-    search(version, query.value.trim());
+  const value = query.value.trim();
+  if (isSearchable(value)) {
+    search(version, value);
+  } else if (value) {
+    setStatus(`Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben.`);
   }
 });
 
@@ -217,7 +229,12 @@ window.addEventListener('load', () => {
   const shared = new URLSearchParams(window.location.search).get('q');
   if (shared) {
     query.value = shared;
-    search(invalidate(), shared.trim());
+    const value = shared.trim();
+    if (isSearchable(value)) {
+      search(invalidate(), value);
+    } else {
+      setStatus(`Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben.`);
+    }
   }
   loadDictionaryInfo();
 });

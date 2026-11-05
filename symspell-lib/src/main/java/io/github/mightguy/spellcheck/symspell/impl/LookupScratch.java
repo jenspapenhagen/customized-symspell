@@ -9,9 +9,9 @@ package io.github.mightguy.spellcheck.symspell.impl;
  * @since 6.7
  */
 final class LookupScratch {
-    private static final int MAGIC_64 = 64;
+    private static final int INITIAL_CANDIDATE_CAPACITY = 64;
 
-    private static final int MAGIC_32 = 32;
+    private static final int INITIAL_PREFIX_CAPACITY = 32;
 
     /**
      * Candidate deduplication of the generic, string based lookup path.
@@ -31,17 +31,17 @@ final class LookupScratch {
     /**
      * Breadth first queue of delete masks of the in-memory fast path.
      */
-    int[] candidateMasks = new int[MAGIC_64];
+    int[] candidateMasks = new int[INITIAL_CANDIDATE_CAPACITY];
 
     /**
      * Characters of the (possibly trimmed) phrase prefix.
      */
-    char[] prefixChars = new char[MAGIC_32];
+    char[] prefixChars = new char[INITIAL_PREFIX_CAPACITY];
 
     /**
      * Destination buffer for the candidate currently being verified.
      */
-    char[] candidateChars = new char[MAGIC_32];
+    char[] candidateChars = new char[INITIAL_PREFIX_CAPACITY];
 
     void clear() {
         consideredDeletes.clear();

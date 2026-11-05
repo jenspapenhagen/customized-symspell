@@ -33,11 +33,12 @@ import org.springframework.stereotype.Service;
 public final class SuggestionService {
 
     private static final String DICTIONARY_RESOURCE = "de-500k.txt";
-    private static final int MAGIC_2 = 2;
-    private static final int MAGIC_7 = 7;
-    private static final int MAGIC_25 = 25;
-    private static final int MAGIC_1000 = 1000;
-    private static final int MAGIC_0 = 0;
+    private static final int MAX_EDIT_DISTANCE = 2;
+    private static final int MIN_SEARCHABLE_LENGTH = 4;
+    private static final int PREFIX_LENGTH = 7;
+    private static final int MAX_SUGGESTIONS = 25;
+    private static final int NANOS_PER_MICRO = 1000;
+    private static final int FIRST_INDEX = 0;
     private static final String SPACE = " ";
 
     private static final Comparator<Suggestion> SUGGESTION_ORDER = (first, second) -> {
@@ -65,9 +66,9 @@ public final class SuggestionService {
     public SuggestionService() throws IOException, SpellCheckException {
         final SpellCheckSettings settings = SpellCheckSettings.builder()
                 .verbosity(Verbosity.ALL)
-                .maxEditDistance(MAGIC_2)
-                .prefixLength(MAGIC_7)
-                .topK(MAGIC_25)
+                .maxEditDistance(MAX_EDIT_DISTANCE)
+                .prefixLength(PREFIX_LENGTH)
+                .topK(MAX_SUGGESTIONS)
                 .build();
         final WeightedDamerauLevenshteinDistance distance = new WeightedDamerauLevenshteinDistance(
                 settings.getDeletionWeight(),
@@ -95,8 +96,15 @@ public final class SuggestionService {
     public SuggestionResponse suggest(final String query, final int limit) throws SpellCheckException {
         final String display = query == null ? "" : query.strip();
         final String normalized = normalize(display);
-        final int effectiveLimit = Math.max(1, Math.min(MAGIC_25, limit));
+        final int effectiveLimit = Math.max(1, Math.min(MAX_SUGGESTIONS, limit));
         if (display.isEmpty()) {
+            return new SuggestionResponse(display, false, null, List.of(), 0L, dictionarySize);
+        }
+        /*
+            Short queries produce too many equally plausible suggestions to be useful and are
+            deliberately not looked up. The frontend applies the same limit.
+         */
+        if (display.length() < MIN_SEARCHABLE_LENGTH) {
             return new SuggestionResponse(display, false, null, List.of(), 0L, dictionarySize);
         }
         final long start = System.nanoTime();
@@ -104,12 +112,12 @@ public final class SuggestionService {
         Suggestion correction = firstCorrection(suggestions);
         boolean exact = isExact(normalized);
         if (normalized.contains(SPACE)) {
-            final List<SuggestionItem> compound = spellCheck.lookupCompound(normalized, MAGIC_2, true);
+            final List<SuggestionItem> compound = spellCheck.lookupCompound(normalized, MAX_EDIT_DISTANCE, true);
             if (compound.isEmpty()) {
                 return new SuggestionResponse(display, exact, correction, suggestions,
                         microsSince(start), dictionarySize);
             }
-            correction = toSuggestion(compound.get(MAGIC_0));
+            correction = toSuggestion(compound.get(FIRST_INDEX));
             exact = correction.distance() == 0.0;
         }
         return new SuggestionResponse(display, exact, correction, suggestions,
@@ -126,14 +134,14 @@ public final class SuggestionService {
     }
 
     private List<Suggestion> collect(final String query, final int limit) throws SpellCheckException {
-        final List<SuggestionItem> items = spellCheck.lookup(query, Verbosity.ALL, MAGIC_2);
+        final List<SuggestionItem> items = spellCheck.lookup(query, Verbosity.ALL, MAX_EDIT_DISTANCE);
         final List<Suggestion> result = new ArrayList<>(items.size());
         for (final SuggestionItem item : items) {
             result.add(toSuggestion(item));
         }
         result.sort(SUGGESTION_ORDER);
         if (result.size() > limit) {
-            return new ArrayList<>(result.subList(MAGIC_0, limit));
+            return new ArrayList<>(result.subList(FIRST_INDEX, limit));
         }
         return result;
     }
@@ -142,7 +150,7 @@ public final class SuggestionService {
         if (suggestions.isEmpty()) {
             return null;
         }
-        final Suggestion best = suggestions.get(MAGIC_0);
+        final Suggestion best = suggestions.get(FIRST_INDEX);
         return best.distance() > 0.0 ? best : null;
     }
 
@@ -155,7 +163,7 @@ public final class SuggestionService {
     }
 
     private long microsSince(final long start) {
-        return (System.nanoTime() - start) / MAGIC_1000;
+        return (System.nanoTime() - start) / NANOS_PER_MICRO;
     }
 
     private String normalize(final String value) {

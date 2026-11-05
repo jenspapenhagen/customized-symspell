@@ -14,12 +14,12 @@ import java.util.Map;
  * @since 6.7
  */
 public class QwertzDistance implements CharDistance {
-    private static final double MAGIC_0_1f = 0.1f;
-    private static final double MAGIC_0_4f = 0.4f;
+    private static final double ADJACENT_KEY_COST = 0.1f;
+    private static final double DIAGONAL_KEY_COST = 0.4f;
 
 
-    double directConnect = MAGIC_0_1f;
-    double diagonalConnect = MAGIC_0_4f;
+    double directConnect = ADJACENT_KEY_COST;
+    double diagonalConnect = DIAGONAL_KEY_COST;
     double defaultValue = 1f;
 
     Map<String, Double> operationCost = new HashMap<>();

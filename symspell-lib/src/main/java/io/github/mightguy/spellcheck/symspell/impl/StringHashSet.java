@@ -8,9 +8,9 @@ package io.github.mightguy.spellcheck.symspell.impl;
  * generation counter, so {@link #clear()} is O(1).
  */
 final class StringHashSet {
-    private static final int MAGIC_5 = 5;
-    private static final int MAGIC_3 = 3;
-    private static final int MAGIC_16 = 16;
+    private static final int LOAD_FACTOR_DENOMINATOR = 5;
+    private static final int LOAD_FACTOR_NUMERATOR = 3;
+    private static final int HASH_MIX_SHIFT = 16;
 
 
     private static final int DEFAULT_CAPACITY = 128;
@@ -43,7 +43,7 @@ final class StringHashSet {
                 hashes[slot] = hash;
                 generations[slot] = generation;
                 size++;
-                if (size * MAGIC_5 > values.length * MAGIC_3) {
+                if (size * LOAD_FACTOR_DENOMINATOR > values.length * LOAD_FACTOR_NUMERATOR) {
                     resize(values.length * 2);
                 }
                 return true;
@@ -70,7 +70,7 @@ final class StringHashSet {
 
     private static int mix(final int hash) {
         final int mixed = hash * 0x9E3779B1;
-        return mixed ^ (mixed >>> MAGIC_16);
+        return mixed ^ (mixed >>> HASH_MIX_SHIFT);
     }
 
     private void resize(final int capacity) {

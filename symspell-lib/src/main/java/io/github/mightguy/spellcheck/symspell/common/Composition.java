@@ -8,8 +8,8 @@ package io.github.mightguy.spellcheck.symspell.common;
  * @since 6.7
  */
 public class Composition {
-    private static final int MAGIC_31 = 31;
-    private static final int MAGIC_32 = 32;
+    private static final int HASH_MULTIPLIER = 31;
+    private static final int LONG_SHIFT = 32;
 
 
     private String segmentedString;
@@ -120,10 +120,10 @@ public class Composition {
     @Override
     public int hashCode() {
         int result = segmentedString != null ? segmentedString.hashCode() : 0;
-        result = MAGIC_31 * result + (correctedString != null ? correctedString.hashCode() : 0);
-        result = MAGIC_31 * result + distanceSum;
+        result = HASH_MULTIPLIER * result + (correctedString != null ? correctedString.hashCode() : 0);
+        result = HASH_MULTIPLIER * result + distanceSum;
         final long logProbBits = Double.doubleToLongBits(logProbSum);
-        result = MAGIC_31 * result + (int) (logProbBits ^ (logProbBits >>> MAGIC_32));
+        result = HASH_MULTIPLIER * result + (int) (logProbBits ^ (logProbBits >>> LONG_SHIFT));
         return result;
     }
 

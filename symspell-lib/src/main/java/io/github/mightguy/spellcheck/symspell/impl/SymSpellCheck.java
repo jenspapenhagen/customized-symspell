@@ -30,19 +30,21 @@ import java.util.Queue;
  * @since 6.7
  */
 public class SymSpellCheck extends SpellChecker {
-    private static final long MAGIC_1024908267229 = 1024908267229L;
-    private static final int MAGIC_32 = 32;
-    private static final double MAGIC_0_01 = 0.01;
-    private static final double MAGIC_10_0 = 10.0;
-    private static final int MAGIC_2 = 2;
-    private static final int MAGIC_48 = 48;
-    private static final double MAGIC_6_0 = 6.0;
-    private static final double MAGIC_1_0 = 1.0;
+    private static final long DEFAULT_N_MAX = 1024908267229L;
+    private static final int KEY_SHIFT = 32;
+    private static final int MAX_INLINE_PREFIX_LENGTH = 32;
+    private static final double DISTANCE_EPSILON = 0.01;
+    private static final double LOG_BASE = 10.0;
+    private static final int MIN_SEGMENT_LENGTH = 2;
+    private static final int MAX_SEGMENT_LENGTH = 48;
+    private static final double SEGMENT_BOUNDARY_PENALTY = 6.0;
+    private static final double FREQUENCY_FLOOR = 1.0;
+    private static final int MIN_SEGMENTED_WORD_LENGTH = 4;
 
 
     //N equals the sum of all counts c in the dictionary only if the dictionary is complete,
     // but not if the dictionary is truncated or filtered
-    private static Long nMax = MAGIC_1024908267229;
+    private static Long nMax = DEFAULT_N_MAX;
 
     /**
      * Reusable deduplication tables for the lookup hot path. They are per thread, because a
@@ -273,10 +275,10 @@ public class SymSpellCheck extends SpellChecker {
     private boolean lookupViterbiSegmentation(final List<SuggestionItem> suggestionParts, final String word)
             throws SpellCheckException {
         final int wordLength = word.length();
-        if (wordLength < MAGIC_2 * MAGIC_2 || wordLength > MAGIC_48) {
+        if (wordLength < MIN_SEGMENTED_WORD_LENGTH || wordLength > MAX_SEGMENT_LENGTH) {
             return false;
         }
-        final double maxFrequency = Math.max(dataHolder.getMaxFrequency(), MAGIC_1_0);
+        final double maxFrequency = Math.max(dataHolder.getMaxFrequency(), FREQUENCY_FLOOR);
         final double[] costs = new double[wordLength + 1];
         final int[] previousBoundaries = new int[wordLength + 1];
         Arrays.fill(costs, Double.POSITIVE_INFINITY);
@@ -287,13 +289,13 @@ public class SymSpellCheck extends SpellChecker {
             if (Double.isInfinite(costs[start])) {
                 continue;
             }
-            final int maxEnd = Math.min(wordLength, start + MAGIC_48);
-            for (int end = start + MAGIC_2; end <= maxEnd; end++) {
+            final int maxEnd = Math.min(wordLength, start + MAX_SEGMENT_LENGTH);
+            for (int end = start + MIN_SEGMENT_LENGTH; end <= maxEnd; end++) {
                 final Double frequency = dataHolder.getItemFrequency(word.substring(start, end));
                 if (frequency == null || frequency <= 0) {
                     continue;
                 }
-                final double boundaryPenalty = start == 0 ? 0 : MAGIC_6_0;
+                final double boundaryPenalty = start == 0 ? 0 : SEGMENT_BOUNDARY_PENALTY;
                 final double candidateCost = costs[start]
                         + Math.log(maxFrequency / frequency) + boundaryPenalty;
                 if (candidateCost < costs[end]) {
@@ -317,7 +319,7 @@ public class SymSpellCheck extends SpellChecker {
             segments.add(word.substring(start, position));
             position = start;
         }
-        if (segments.size() < MAGIC_2) {
+        if (segments.size() < MIN_SEGMENT_LENGTH) {
             return false;
         }
         Collections.reverse(segments);
@@ -513,7 +515,7 @@ public class SymSpellCheck extends SpellChecker {
             hash, so candidates can be enumerated as delete masks over a reusable char buffer. That
             removes the string allocation and string hashing of the generic delete generation.
          */
-        if (dataHolder instanceof InMemoryDataHolder && phrasePrefixLen <= MAGIC_32) {
+        if (dataHolder instanceof InMemoryDataHolder && phrasePrefixLen <= MAX_INLINE_PREFIX_LENGTH) {
             return lookupInMemory(phrase, phraseLen, prefixLength, verbosity, maxEditDistance,
                     suggestionItems, scratch, (InMemoryDataHolder) dataHolder);
         }
@@ -560,7 +562,7 @@ public class SymSpellCheck extends SpellChecker {
                 final long storedKey = inMem.getHashFunction().hash(candidate) + 1L;
                 final LongIntMap idx = inMem.getDeleteIndex();
                 final int mask = idx.getMask();
-                int slot = ((int) (storedKey >>> MAGIC_32) ^ (int) storedKey) & mask;
+                int slot = ((int) (storedKey >>> KEY_SHIFT) ^ (int) storedKey) & mask;
                 int bucket = -1;
                 while (true) {
                     final long cur = idx.getKey(slot);
@@ -653,7 +655,7 @@ public class SymSpellCheck extends SpellChecker {
                         }
                     }
 
-                    if (SpellHelper.isLessOrEqualDouble(distance, maxEditDistance2, MAGIC_0_01)) {
+                    if (SpellHelper.isLessOrEqualDouble(distance, maxEditDistance2, DISTANCE_EPSILON)) {
                         suggestionCount = (frequencies != null)
                                 ? frequencies[deleteId]
                                 : dataHolder.getTermFrequency(deleteId);
@@ -662,7 +664,7 @@ public class SymSpellCheck extends SpellChecker {
                             if (verbosity == Verbosity.CLOSEST && distance < maxEditDistance2) {
                                 suggestionItems.clear();
                             } else if (verbosity == Verbosity.TOP) {
-                                if (SpellHelper.isLessDouble(distance, maxEditDistance2, MAGIC_0_01)
+                                if (SpellHelper.isLessDouble(distance, maxEditDistance2, DISTANCE_EPSILON)
                                         || suggestionCount > suggestionItems.get(0).getCount()) {
                                     maxEditDistance2 = distance;
                                     suggestionItems.set(0, si);
@@ -774,7 +776,7 @@ public class SymSpellCheck extends SpellChecker {
             }
 
             final long storedKey = hashFunction.hash(candidateChars, candidateLen) + 1L;
-            int slot = ((int) (storedKey >>> MAGIC_32) ^ (int) storedKey) & indexMask;
+            int slot = ((int) (storedKey >>> KEY_SHIFT) ^ (int) storedKey) & indexMask;
             int bucket = -1;
             while (true) {
                 final long currentKey = index.getKey(slot);
@@ -833,7 +835,7 @@ public class SymSpellCheck extends SpellChecker {
                         distance = computed;
                     }
 
-                    if (!SpellHelper.isLessOrEqualDouble(distance, maxEditDistance2, MAGIC_0_01)) {
+                    if (!SpellHelper.isLessOrEqualDouble(distance, maxEditDistance2, DISTANCE_EPSILON)) {
                         continue;
                     }
 
@@ -853,7 +855,7 @@ public class SymSpellCheck extends SpellChecker {
                         continue;
                     }
                     if (verbosity == Verbosity.TOP) {
-                        if (SpellHelper.isLessDouble(distance, maxEditDistance2, MAGIC_0_01)
+                        if (SpellHelper.isLessDouble(distance, maxEditDistance2, DISTANCE_EPSILON)
                                 || suggestionCount > suggestionItems.get(0).getCount()) {
                             maxEditDistance2 = distance;
                             suggestionItems.set(0, new SuggestionItem(suggestion, distance, suggestionCount));
@@ -1210,7 +1212,7 @@ public class SymSpellCheck extends SpellChecker {
                     //otherwise long input text would win as long unknown word (with ed=edmax+1 ), although
                     // there there should many spaces inserted
                     topEd += part.length();
-                    topProbabilityLog = Math.log10(MAGIC_10_0 / (nMax * Math.pow(MAGIC_10_0, part.length())));
+                    topProbabilityLog = Math.log10(LOG_BASE / (nMax * Math.pow(LOG_BASE, part.length())));
                 }
                 final int destinationIndex = ((i + circularIndex) % arraySize);
 

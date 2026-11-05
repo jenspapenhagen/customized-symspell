@@ -41,6 +41,17 @@ class SuggestionServiceTest {
     }
 
     @Test
+    void ignoresQueriesOfThreeCharactersOrLess() throws Exception {
+        for (final String shortQuery : new String[]{"a", "ab", "abc", "   ab "}) {
+            final SuggestionResponse response = service.suggest(shortQuery, 5);
+            assertTrue(response.suggestions().isEmpty(), shortQuery);
+            assertTrue(response.correction() == null, shortQuery);
+            assertEquals(0L, response.micros(), shortQuery);
+            assertTrue(response.dictionarySize() > 0, shortQuery);
+        }
+    }
+
+    @Test
     void returnsNothingForAnEmptyQuery() throws Exception {
         final SuggestionResponse response = service.suggest("   ", 5);
         assertTrue(response.suggestions().isEmpty());

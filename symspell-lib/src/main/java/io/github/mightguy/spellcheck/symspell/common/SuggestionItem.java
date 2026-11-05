@@ -14,9 +14,9 @@ import java.util.Comparator;
  */
 public class SuggestionItem
         implements Comparator<SuggestionItem>, Comparable<SuggestionItem>, Serializable {
-    private static final double MAGIC_0_001f = 0.001f;
-    private static final int MAGIC_31 = 31;
-    private static final int MAGIC_32 = 32;
+    private static final double DISTANCE_EPSILON = 0.001f;
+    private static final int HASH_MULTIPLIER = 31;
+    private static final int LONG_SHIFT = 32;
 
 
     /**
@@ -112,7 +112,7 @@ public class SuggestionItem
      */
     @Override
     public int compareTo(final SuggestionItem other) {
-        if (SpellHelper.isEqualDouble(this.distance, other.distance, MAGIC_0_001f)) {
+        if (SpellHelper.isEqualDouble(this.distance, other.distance, DISTANCE_EPSILON)) {
             return Double.compare(other.count, this.count);
         }
         return Double.compare(this.distance, other.distance);
@@ -150,11 +150,11 @@ public class SuggestionItem
     public int hashCode() {
         int result = term != null ? term.hashCode() : 0;
         final long distanceBits = Double.doubleToLongBits(distance);
-        result = MAGIC_31 * result + (int) (distanceBits ^ (distanceBits >>> MAGIC_32));
+        result = HASH_MULTIPLIER * result + (int) (distanceBits ^ (distanceBits >>> LONG_SHIFT));
         final long countBits = Double.doubleToLongBits(count);
-        result = MAGIC_31 * result + (int) (countBits ^ (countBits >>> MAGIC_32));
+        result = HASH_MULTIPLIER * result + (int) (countBits ^ (countBits >>> LONG_SHIFT));
         final long scoreBits = Double.doubleToLongBits(score);
-        result = MAGIC_31 * result + (int) (scoreBits ^ (scoreBits >>> MAGIC_32));
+        result = HASH_MULTIPLIER * result + (int) (scoreBits ^ (scoreBits >>> LONG_SHIFT));
         return result;
     }
 

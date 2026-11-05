@@ -24,12 +24,12 @@ import java.util.Set;
  * @since 6.7
  */
 public class InMemoryDataHolder implements DataHolder {
-    private static final int MAGIC_1024 = 1024;
+    private static final int INITIAL_CAPACITY = 1024;
 
 
     private StringIntMap termIndex = new StringIntMap();
-    private String[] terms = new String[MAGIC_1024];
-    private double[] frequencies = new double[MAGIC_1024];
+    private String[] terms = new String[INITIAL_CAPACITY];
+    private double[] frequencies = new double[INITIAL_CAPACITY];
     private int termCount;
     private double maxFrequency;
 
@@ -38,7 +38,7 @@ public class InMemoryDataHolder implements DataHolder {
     private Map<String, Double> belowThresholdWords = new HashMap<>();
 
     private final LongIntMap deleteIndex = new LongIntMap();
-    private int[][] deleteBuckets = new int[MAGIC_1024][];
+    private int[][] deleteBuckets = new int[INITIAL_CAPACITY][];
     private int deleteBucketCount;
 
     private SpellCheckSettings spellCheckSettings;
@@ -265,12 +265,12 @@ public class InMemoryDataHolder implements DataHolder {
     @Override
     public boolean clear() {
         termIndex.clear();
-        terms = new String[MAGIC_1024];
-        frequencies = new double[MAGIC_1024];
+        terms = new String[INITIAL_CAPACITY];
+        frequencies = new double[INITIAL_CAPACITY];
         termCount = 0;
         maxFrequency = 0;
         deleteIndex.clear();
-        deleteBuckets = new int[MAGIC_1024][];
+        deleteBuckets = new int[INITIAL_CAPACITY][];
         deleteBucketCount = 0;
         belowThresholdWords.clear();
         bigramsDictionary.clear();

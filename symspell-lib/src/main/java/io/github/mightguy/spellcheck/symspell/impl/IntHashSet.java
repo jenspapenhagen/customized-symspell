@@ -12,17 +12,17 @@ import java.util.Arrays;
  * @since 6.7
  */
 final class IntHashSet {
-    private static final int MAGIC_5 = 5;
+    private static final int LOAD_FACTOR_DENOMINATOR = 5;
 
-    private static final int MAGIC_3 = 3;
+    private static final int LOAD_FACTOR_NUMERATOR = 3;
 
-    private static final int MAGIC_16 = 16;
+    private static final int HASH_MIX_SHIFT = 16;
 
-    private static final int MAGIC_32 = 32;
+    private static final int GENERATION_SHIFT = 32;
 
     private static final int DEFAULT_CAPACITY = 256;
 
-    private static final long MAGIC_0XFFFFFFFF = 0xFFFFFFFFL;
+    private static final long VALUE_MASK = 0xFFFFFFFFL;
 
     /**
      * High 32 bits hold the generation stamp, low 32 bits the value.
@@ -52,11 +52,11 @@ final class IntHashSet {
             resize(entries.length * 2);
         }
         int slot = mix(value) & mask;
-        final long stamp = (long) generation << MAGIC_32;
+        final long stamp = (long) generation << GENERATION_SHIFT;
         while (true) {
             final long entry = entries[slot];
-            if ((int) (entry >>> MAGIC_32) != generation) {
-                entries[slot] = stamp | (value & MAGIC_0XFFFFFFFF);
+            if ((int) (entry >>> GENERATION_SHIFT) != generation) {
+                entries[slot] = stamp | (value & VALUE_MASK);
                 size++;
                 return true;
             }
@@ -81,7 +81,7 @@ final class IntHashSet {
 
     private static int mix(final int value) {
         final int mixed = value * 0x9E3779B1;
-        return mixed ^ (mixed >>> MAGIC_16);
+        return mixed ^ (mixed >>> HASH_MIX_SHIFT);
     }
 
     private void resize(final int capacity) {
@@ -90,13 +90,13 @@ final class IntHashSet {
         allocate(capacity);
         for (int i = 0; i < oldEntries.length; i++) {
             final long entry = oldEntries[i];
-            if ((int) (entry >>> MAGIC_32) == oldGeneration) {
+            if ((int) (entry >>> GENERATION_SHIFT) == oldGeneration) {
                 final int value = (int) entry;
                 int slot = mix(value) & mask;
-                while ((int) (entries[slot] >>> MAGIC_32) == generation) {
+                while ((int) (entries[slot] >>> GENERATION_SHIFT) == generation) {
                     slot = (slot + 1) & mask;
                 }
-                entries[slot] = ((long) generation << MAGIC_32) | (value & MAGIC_0XFFFFFFFF);
+                entries[slot] = ((long) generation << GENERATION_SHIFT) | (value & VALUE_MASK);
                 size++;
             }
         }
@@ -106,6 +106,6 @@ final class IntHashSet {
         entries = new long[capacity];
         mask = capacity - 1;
         size = 0;
-        growLimit = capacity * MAGIC_3 / MAGIC_5;
+        growLimit = capacity * LOAD_FACTOR_NUMERATOR / LOAD_FACTOR_DENOMINATOR;
     }
 }
