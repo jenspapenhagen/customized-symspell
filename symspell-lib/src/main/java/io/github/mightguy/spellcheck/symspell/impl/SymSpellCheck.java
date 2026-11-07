@@ -148,13 +148,15 @@ public class SymSpellCheck extends SpellChecker {
 
         }
 
-        String joinedTerm = "";
+        final StringBuilder joinedTermBuilder = new StringBuilder();
         double joinedCount = Double.MAX_VALUE;
         for (SuggestionItem si : suggestionParts) {
-            joinedTerm = joinedTerm.concat(si.getTerm()).concat(" ");
-            joinedCount = Math.min(joinedCount, si.getCount());
+            joinedTermBuilder.append(si.getTerm()).append(' ');
+            if (si.getCount() < joinedCount) {
+                joinedCount = si.getCount();
+            }
         }
-        joinedTerm = joinedTerm.trim();
+        final String joinedTerm = joinedTermBuilder.toString().trim();
         final double dist = stringDistance.getDistance(
                 joinedTerm, phrase, Math.pow(2, 31) - 1);
 

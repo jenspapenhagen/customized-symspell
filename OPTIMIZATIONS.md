@@ -584,3 +584,13 @@ Analysedateien:
   Siehe [MEMORY_MAPPED_DICTIONARY.md](MEMORY_MAPPED_DICTIONARY.md).
 - **Perfect Hash für Whitespace**: isoliert 2× schneller, in situ < 0,1 %.
   Siehe [WHITESPACE.md](WHITESPACE.md).
+
+## Verbleibende Speed-Ideen (2026-11-07)
+
+Umfassende Bestandsaufnahme der noch nicht ausprobierten Speed-Optimierungen,
+JFR-Hotspots und realistischer Gewinn-Schätzungen:
+[SPEED_OPTIMIZATION_OPPORTUNITIES.md](SPEED_OPTIMIZATION_OPPORTUNITIES.md).
+
+Kleine Code-Verbesserung umgesetzt: `lookupCompound` baut den `joinedTerm` jetzt
+per `StringBuilder` statt per `String.concat` (O(n) statt O(n²)). Kein messbarer
+Gewinn bei der Lookup-Latenz, aber saubererer Code.
