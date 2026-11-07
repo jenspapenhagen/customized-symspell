@@ -567,3 +567,20 @@ nichts: Der `DictionaryReader` prüft `byte` und ist mit der Vergleichskette ber
 optimal (2,0 ns/Byte), alle `char`-Prädikate werden nur wenige hundert Mal pro
 Operation aufgerufen (< 0,1 % der Laufzeit). Details, exakte Tabellen, Multiplier,
 Semantikvergleich und Messungen: [WHITESPACE.md](WHITESPACE.md).
+
+## Weitere geprüfte Ideen (2026-11-07)
+
+Kurzfazit der Internet-Recherche und der Messungen; Details in den jeweiligen
+Analysedateien:
+
+- **Compact Object Headers** (`-XX:+UseCompactObjectHeaders`, JDK 25): −5 % Heap
+  (278 → 264 MB bei 500k Wörtern), keine Laufzeitverschlechterung.
+  → Adoptieren als JVM-Flag. Siehe [COMPACT_OBJECT_HEADERS.md](COMPACT_OBJECT_HEADERS.md).
+- **String Deduplication** (G1): kein Heap-Gewinn, +5 % Build-Zeit. Nicht adoptieren.
+  Siehe [STRING_DEDUPLICATION.md](STRING_DEDUPLICATION.md).
+- **AOT Cache** (JDK 25): 10–30 % schnellerer Startup, aber Wörterbuch (4 s)
+  dominiert. Für Produktion sinnvoll. Siehe [AOT_CACHE.md](AOT_CACHE.md).
+- **Memory-mapped Dictionary** (FFM): Lesen ist nur 1 % der Build-Zeit. Nicht adoptieren.
+  Siehe [MEMORY_MAPPED_DICTIONARY.md](MEMORY_MAPPED_DICTIONARY.md).
+- **Perfect Hash für Whitespace**: isoliert 2× schneller, in situ < 0,1 %.
+  Siehe [WHITESPACE.md](WHITESPACE.md).
