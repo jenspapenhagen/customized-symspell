@@ -557,3 +557,13 @@ Quelle: [hermitdave/FrequencyWords](https://github.com/hermitdave/FrequencyWords
 
 `prefixLength=7` bleibt gesetzt: halber Speicher spart 0,7 s Build, kostet aber 2,4× Lookup-Zeit.
 Service-Start inklusive Spring Boot: 6,4 s. Demo-Antwort warm ~0,3 ms (`Verbosity.ALL`, topK 25).
+
+## Whitespace-Prädikate (Perfect Hash) — geprüft, nicht übernommen
+
+Der Perfect Hash aus Guavas `CharMatcher.Whitespace` (Multiplikation, Shift, ein
+Tabellenzugriff, ein Vergleich) ist isoliert etwa 2× schneller als
+`Character.isWhitespace` (0,75 ns gegenüber 1,5 ns pro Zeichen). Im Projekt bringt er
+nichts: Der `DictionaryReader` prüft `byte` und ist mit der Vergleichskette bereits
+optimal (2,0 ns/Byte), alle `char`-Prädikate werden nur wenige hundert Mal pro
+Operation aufgerufen (< 0,1 % der Laufzeit). Details, exakte Tabellen, Multiplier,
+Semantikvergleich und Messungen: [WHITESPACE.md](WHITESPACE.md).
