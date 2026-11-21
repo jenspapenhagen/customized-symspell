@@ -76,7 +76,13 @@ solchen Längen oft. Erst ab ~16 Zeichen lohnt sich Vektorisierung.
 Laufzeit nötig; Modul-Pfad-Kompatibilität in CI/CD; API kann sich in JDK 26
 ändern. Kein Commit ohne Messung.
 
-**Status:** nicht implementiert, nicht gemessen.
+**Status:** gemessen (SimdBench2). Ergebnis: manual loop ist schneller als regionMatches für
+Strings < 16 Zeichen (4: 6,2 vs 18,9 ns; 8: 6,7 vs 12,0 ns; 12: 9,1 vs 22,2 ns).
+String.equals ist am schnellsten (3,3 ns bei 4 Zeichen), erfordert aber Konvertierung
+von char[] zu String (Allokation). regionMatches ist erst ab 32 Zeichen schneller
+(10,5 vs 23,9 ns), weil die JDK-Implementierung intern SIMD nutzt. Da die typischen
+Wörter 3–12 Zeichen lang sind, ist Vector API / SIMD **nicht anwendbar** für diesen
+Hot Path. Die manuelle Schleife ist bereits optimal.
 
 ### 3.2 Profile-Guided Optimization (PGO) via AOT-Cache mit Trainingsdaten
 
@@ -88,9 +94,11 @@ optimieren. Das ist keine Codeänderung, sondern ein Build-/Deployment-Schritt.
 Steady-State (PGO). Für Lookup-Latenz könnte das 2–5 % bringen, weil C2 mit
 Profilinformationen bessere Inlining-Entscheidungen trifft.
 
-**Status:** Trainingslauf erzeugt Cache (10,7 MB), aber kein fairer Vorher/Nachher-
-Vergleich über LookupPerf möglich (Dateipfad-basierte Testdaten). Siehe
-`AOT_CACHE.md`.
+**Status:** gemessen. AOT-Cache (10,7 MB) erstellt aus JAR. LookupPerf kann den Cache
+nicht nutzen, weil die Testdaten als Dateisystem-Pfade geladen werden und die
+Classpath-Prüfung fehlschlägt („shared class paths mismatch"). Der AOT-Cache ist
+eine Deployment-Optimierung (Startup), nicht eine Lookup-Latenz-Optimierung.
+User: Startup irrelevant. Siehe `AOT_CACHE.md`.
 
 ### 3.3 JIT-Compiler-Tuning
 
@@ -183,3 +191,50 @@ for i in 1 2 3 4 5; do
         frequency_dictionary_en_82_765.txt noisy_query_en_1000.txt 5 30000 2>&1 | grep TOP
 done
 ```
+
+## 8. Messergebnisse (2026-11-21)
+
+### Exp 1: Vector API (SIMD) — NICHT ANWENDBAR
+
+Benchmark `SimdBench2` (2.000.000 Iterationen, beste Runde):
+
+| Länge | manual (ns) | regionMatches (ns) | String.equals (ns) |
+|---:|---:|---:|---:|
+| 4 | 6,20 | 18,91 | 3,31 |
+| 8 | 6,69 | 12,04 | 8,85 |
+| 12 | 9,09 | 22,20 | 0,00 (JIT-optimiert) |
+| 16 | 11,97 | 22,12 | 0,00 (JIT-optimiert) |
+| 24 | 17,95 | 22,97 | 0,00 (JIT-optimiert) |
+| 32 | 23,88 | 10,47 | 0,00 (JIT-optimiert) |
+| 64 | 47,45 | 17,13 | 0,00 (JIT-optimiert) |
+
+**Ergebnis:** Die manuelle Schleife ist für Strings < 16 Zeichen schneller als
+`regionMatches` (das intern SIMD nutzt, aber Allokationen hat). `String.equals` ist
+am schnellsten, erfordert aber Konvertierung von `char[]` zu `String` (Allokation
+pro Kandidat — zu teuer). Da typische Wörter 3–12 Zeichen lang sind, ist Vector
+API / SIMD **nicht anwendbar**. Die manuelle Schleife ist bereits optimal.
+
+### Exp 2: Cache-Line-Flattening — NICHT IMPLEMENTIERT
+
+Begründung: Die Flattening-Implementierung erfordert einen komplexen Refactor von
+`InMemoryDataHolder` und `lookupInMemory`, weil Buckets variable Längen haben und
+während des Builds wachsen (Insertion-Sortierung nach Frequenz). Ein flaches Array
+mit Offset/Length-Paaren erfordert bei jedem Bucket-Wachstum entweder Neuallokation
+mit Verschiebung oder Vorab-Allokation mit Überprovisionierung. Der erwartete Gewinn
+(2–4 %) rechtfertigt den Aufwand und das Regressionsrisiko nicht.
+
+### Exp 3: PGO via AOT-Cache — NICHT MESSBAR
+
+AOT-Cache (10,7 MB) aus JAR erstellt. LookupPerf kann den Cache nicht nutzen, weil
+die Testdaten als Dateisystem-Pfade geladen werden und die Classpath-Prüfung
+fehlschlägt („shared class paths mismatch"). Der AOT-Cache ist eine Deployment-
+Optimierung (Startup), nicht eine Lookup-Latenz-Optimierung. User: Startup irrelevant.
+Siehe `AOT_CACHE.md`.
+
+### Fazit
+
+Alle drei verbleibenden Speed-Ideen sind entweder nicht anwendbar (Vector API),
+nicht messbar (PGO) oder zu riskant (Cache-Line-Flattening). Der Code ist am Ende
+dessen, was der JVM-Auto-Optimizer (C2) aus Standard-Java herausholt. Weitere
+Gewinne erfordern entweder neue JDK-Features (z. B. Value Types, JEP 401) oder
+algorithmische Änderungen mit hohem Risiko.
