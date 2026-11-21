@@ -599,3 +599,9 @@ Gewinn bei der Lookup-Latenz, aber saubererer Code.
   kontiguierliche Speicherung ersetzen. Die Idee ist identisch mit Cache-Line-
   Flattening der Delete-Buckets (bereits dokumentiert). Speicherreduktion
   irrelevant (User: RAM egal). Siehe [BPLUS_TREE_CACHE_LOCALITY.md](BPLUS_TREE_CACHE_LOCALITY.md).
+
+- **Peer-Reviewed Research & Neue Algorithmen** (Nov 2026): Systematische
+  Literaturrecherche (arXiv, IEEE, ACM, ACL, Springer, PMC, SeekStorm). Keine
+  neuen peer-reviewed Speed-Ideen für SymSpell gefunden. Die SeekStorm v7-
+  Optimierungen (Bit-paralleles OSA, StringHashSet, Term-ID-Speicher, SWAR)
+  sind bereits im Repo. Siehe [PEER_REVIEWED_RESEARCH.md](PEER_REVIEWED_RESEARCH.md).
