@@ -594,3 +594,8 @@ JFR-Hotspots und realistischer Gewinn-Schätzungen:
 Kleine Code-Verbesserung umgesetzt: `lookupCompound` baut den `joinedTerm` jetzt
 per `StringBuilder` statt per `String.concat` (O(n) statt O(n²)). Kein messbarer
 Gewinn bei der Lookup-Latenz, aber saubererer Code.
+
+- **B+-Baum / Cache-Lokalität** (Valkey fbtree): verstreute Allokationen durch
+  kontiguierliche Speicherung ersetzen. Die Idee ist identisch mit Cache-Line-
+  Flattening der Delete-Buckets (bereits dokumentiert). Speicherreduktion
+  irrelevant (User: RAM egal). Siehe [BPLUS_TREE_CACHE_LOCALITY.md](BPLUS_TREE_CACHE_LOCALITY.md).
